@@ -26,3 +26,4 @@ dataset/output/constructed_prompts.jsonl
 .DS_Store
 
 dataset/old_construct_dataset.py
+.python-version
