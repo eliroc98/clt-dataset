@@ -1362,6 +1362,7 @@ class SyntheticGenerator:
 
 def _load_dataset_prompts(
     datasets: list[str] | None = None,
+    max_per_dataset: int | None = None,
 ) -> list[dict]:
     """
     Stream prompts from official instruction-tuning datasets using the
@@ -1369,6 +1370,12 @@ def _load_dataset_prompts(
 
     Returns a list of ``{"prompt": ..., "source": ...}`` dicts suitable
     for ``extract_templates_from_dataset()``.
+
+    Parameters
+    ----------
+    max_per_dataset
+        If set, collect at most this many prompts from each dataset.
+        Useful for quick smoke-testing the pipeline (e.g. ``max_per_dataset=2``).
     """
     registry = DATASET_REGISTRY
     if datasets:
@@ -1407,6 +1414,8 @@ def _load_dataset_prompts(
             if text.strip():
                 prompts.append({"prompt": text, "source": ds_name})
                 ds_count += 1
+                if max_per_dataset is not None and ds_count >= max_per_dataset:
+                    break
 
         logger.info(f"    {ds_name}: {len(samples)} samples → {ds_count} prompts")
 
@@ -1420,6 +1429,7 @@ def run_extraction(
     model: str = "meta-llama/Llama-3.1-8B-Instruct",
     device: str | None = None,
     datasets: list[str] | None = None,
+    test: bool = False,
 ) -> TemplateStore:
     """
     Extract templates from real dataset prompts via a local HuggingFace model.
@@ -1427,11 +1437,19 @@ def run_extraction(
     Streams prompts from official instruction-tuning datasets (using the
     registry in ``collect_task_types.py``), then runs few-shot LLM
     extraction on each prompt to decompose it into templates and options.
+
+    Parameters
+    ----------
+    test
+        When True, load only 2 prompts per dataset for a quick smoke-test.
     """
     store = TemplateStore()
 
+    if test:
+        logger.info("TEST MODE: loading 2 prompts per dataset.")
+
     logger.info(f"Streaming prompts from official datasets for extraction (model={model})…")
-    prompts = _load_dataset_prompts(datasets)
+    prompts = _load_dataset_prompts(datasets, max_per_dataset=2 if test else None)
 
     if prompts:
         ext_tmpls, ext_opts = extract_templates_from_dataset(
@@ -1578,6 +1596,9 @@ examples:
                         help="Only extract and store templates, don't generate")
     parser.add_argument("--generate-only", action="store_true",
                         help="Generate from previously extracted templates")
+    parser.add_argument("--test", action="store_true",
+                        help="Smoke-test mode: stream 2 prompts per dataset and generate 5 "
+                             "synthetic prompts to verify the pipeline end-to-end")
 
     args = parser.parse_args()
 
@@ -1595,6 +1616,9 @@ examples:
 
     output_path = Path(args.output) if args.output else GENERATED_PATH
 
+    if args.test:
+        logger.info("*** TEST MODE — 2 prompts per dataset, 5 generated prompts ***")
+
     # ── Extract (always needed for generate) ─────────────────────────
     if not args.generate_only:
         # Set HF_TOKEN from CLI if provided
@@ -1606,6 +1630,7 @@ examples:
             model=args.model,
             device=args.device,
             datasets=args.datasets,
+            test=args.test,
         )
         run_augmentation(store, seed=args.seed)
         store.save()
@@ -1623,7 +1648,7 @@ examples:
     # ── Generate ─────────────────────────────────────────────────────
     run_generation(
         store, taxonomy,
-        n=args.n,
+        n=5 if args.test else args.n,
         density=args.density,
         min_tokens=args.min_tokens,
         max_tokens=args.max_tokens,
