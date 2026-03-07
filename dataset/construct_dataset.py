@@ -90,7 +90,27 @@ from dataset.collect_task_types import (
     extract_instruction_text,
 )
 from dataset.auth import resolve_hf_token  # loads .env files as a side-effect
-from dataset.local_llm import generate_text as _local_generate
+from dataset.local_llm import generate_text as _local_generate, generate_text_batch as _local_generate_batch
+
+from pydantic import BaseModel as _BaseModel
+
+
+# ── Pydantic schema for structured LLM output ───────────────────────────
+
+class _TemplateItem(_BaseModel):
+    text: str
+    slots: list[str]
+    task_type: str
+    level: str
+
+class _OptionItem(_BaseModel):
+    value: str
+    slot: str
+    compatible_task_types: list[str]
+
+class _ExtractionResult(_BaseModel):
+    templates: list[_TemplateItem]
+    options: list[_OptionItem]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -489,6 +509,8 @@ def _call_llm(
     temperature: float = 0.0,
     max_tokens: int = 2048,
     device: str | None = None,
+    enable_thinking: bool | None = None,
+    json_schema: Any | None = None,
 ) -> str:
     """Call a local HuggingFace model and return the raw text response."""
     return _local_generate(
@@ -497,12 +519,39 @@ def _call_llm(
         temperature=temperature,
         max_new_tokens=max_tokens,
         device=device,
+        enable_thinking=enable_thinking,
+        json_schema=json_schema,
+    )
+
+
+def _call_llm_batch(
+    batch_messages: list[list[dict[str, str]]],
+    *,
+    model: str = "meta-llama/Llama-3.1-8B-Instruct",
+    temperature: float = 0.0,
+    max_tokens: int = 2048,
+    device: str | None = None,
+    enable_thinking: bool | None = None,
+    json_schema: Any | None = None,
+) -> list[str]:
+    """Call a local HuggingFace model on a batch of message lists."""
+    return _local_generate_batch(
+        model,
+        batch_messages,
+        temperature=temperature,
+        max_new_tokens=max_tokens,
+        device=device,
+        enable_thinking=enable_thinking,
+        json_schema=json_schema,
     )
 
 
 def _repair_json(raw: str) -> dict:
     """Best-effort extraction and repair of JSON from LLM output."""
     raw = raw.strip()
+
+    # Strip <think>...</think> reasoning blocks (e.g. Qwen3 models)
+    raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
     # Strip markdown fences
     if raw.startswith("```"):
@@ -715,11 +764,36 @@ def extract_templates_from_prompt_llm(
             model=model,
             temperature=0.0,
             device=device,
+            enable_thinking=False,
+            json_schema=_ExtractionResult,
         )
         return _parse_llm_extraction(raw, taxonomy)
     except Exception as e:
         logger.warning(f"  LLM extraction failed for prompt: {e}")
         return [], []
+
+
+def _merge_into_store(
+    all_templates: dict[str, TaskTemplate],
+    all_options: dict[str, Option],
+    tmpls: list[TaskTemplate],
+    opts: list[Option],
+) -> None:
+    """Merge extracted templates/options into the running dicts in-place."""
+    for t in tmpls:
+        if t.id not in all_templates:
+            all_templates[t.id] = t
+    for o in opts:
+        if o.id not in all_options:
+            all_options[o.id] = o
+        else:
+            existing = all_options[o.id]
+            for tt in o.compatible_task_types:
+                if tt not in existing.compatible_task_types:
+                    existing.compatible_task_types.append(tt)
+            for tid in o.compatible_templates:
+                if tid not in existing.compatible_templates:
+                    existing.compatible_templates.append(tid)
 
 
 def extract_templates_from_dataset(
@@ -728,7 +802,7 @@ def extract_templates_from_dataset(
     *,
     model: str = "meta-llama/Llama-3.1-8B-Instruct",
     device: str | None = None,
-    batch_size: int = 1,
+    batch_size: int = 8,
 ) -> tuple[list[TaskTemplate], list[Option]]:
     """
     Extract templates and options from a list of prompt records via a local
@@ -736,43 +810,80 @@ def extract_templates_from_dataset(
 
     Each record should have at least a ``"prompt"`` field.
     Results are de-duplicated and compatibility info is merged.
+    When ``batch_size > 1`` multiple prompts are processed in a single
+    batched forward pass (much faster on GPU).
     """
     all_templates: dict[str, TaskTemplate] = {}
     all_options: dict[str, Option] = {}
+    taxonomy_labels = list(taxonomy.keys())
 
     failures = 0
-    pbar = tqdm(prompts, desc="Extracting templates", unit="prompt")
-    for rec in pbar:
-        prompt_text = rec.get("prompt", "")
-        if not prompt_text:
+    pbar = tqdm(range(0, len(prompts), batch_size), desc="Extracting templates", unit="batch")
+    for start in pbar:
+        batch = prompts[start : start + batch_size]
+        batch = [r for r in batch if r.get("prompt", "").strip()]
+        if not batch:
             continue
 
-        tmpls, opts = extract_templates_from_prompt_llm(
-            prompt_text,
-            taxonomy,
-            model=model,
-            device=device,
-        )
+        if len(batch) == 1:
+            # Single-item path – avoids padding overhead
+            try:
+                raw = _call_llm(
+                    _build_extraction_messages(batch[0]["prompt"], taxonomy_labels),
+                    model=model,
+                    temperature=0.0,
+                    device=device,
+                    enable_thinking=False,
+                    json_schema=_ExtractionResult,
+                )
+                tmpls, opts = _parse_llm_extraction(raw, taxonomy)
+            except Exception as e:
+                logger.warning(f"  LLM extraction failed: {e}")
+                tmpls, opts = [], []
+            if not tmpls and not opts:
+                failures += 1
+            _merge_into_store(all_templates, all_options, tmpls, opts)
+        else:
+            batch_msgs = [
+                _build_extraction_messages(r["prompt"], taxonomy_labels)
+                for r in batch
+            ]
+            try:
+                raws = _call_llm_batch(
+                    batch_msgs,
+                    model=model,
+                    temperature=0.0,
+                    device=device,
+                    enable_thinking=False,
+                    json_schema=_ExtractionResult,
+                )
+            except Exception as e:
+                logger.warning(f"  Batched LLM extraction failed, falling back to single: {e}")
+                raws = []
+                for msgs in batch_msgs:
+                    try:
+                        raws.append(_call_llm(
+                            msgs, model=model, temperature=0.0,
+                            device=device, enable_thinking=False,
+                            json_schema=_ExtractionResult,
+                        ))
+                    except Exception as e2:
+                        logger.warning(f"  Single LLM extraction failed: {e2}")
+                        raws.append("")
 
-        if not tmpls and not opts:
-            failures += 1
-
-        for t in tmpls:
-            if t.id not in all_templates:
-                all_templates[t.id] = t
-        for o in opts:
-            if o.id not in all_options:
-                all_options[o.id] = o
-            else:
-                # Merge compatibility info — options can be compatible
-                # with multiple task types and templates.
-                existing = all_options[o.id]
-                for tt in o.compatible_task_types:
-                    if tt not in existing.compatible_task_types:
-                        existing.compatible_task_types.append(tt)
-                for tid in o.compatible_templates:
-                    if tid not in existing.compatible_templates:
-                        existing.compatible_templates.append(tid)
+            for raw in raws:
+                if not raw:
+                    failures += 1
+                    continue
+                try:
+                    tmpls, opts = _parse_llm_extraction(raw, taxonomy)
+                except Exception as e:
+                    logger.warning(f"  Parse failed: {e}")
+                    failures += 1
+                    continue
+                if not tmpls and not opts:
+                    failures += 1
+                _merge_into_store(all_templates, all_options, tmpls, opts)
 
         pbar.set_postfix(
             templates=len(all_templates),
@@ -1556,6 +1667,7 @@ def run_extraction(
     device: str | None = None,
     datasets: list[str] | None = None,
     test: bool = False,
+    batch_size: int = 8,
 ) -> TemplateStore:
     """
     Extract templates from real dataset prompts via a local HuggingFace model.
@@ -1568,13 +1680,15 @@ def run_extraction(
     ----------
     test
         When True, load only 2 prompts per dataset for a quick smoke-test.
+    batch_size
+        Number of prompts to process in a single batched forward pass.
     """
     store = TemplateStore()
 
     if test:
         logger.info("TEST MODE: loading 2 prompts per dataset.")
 
-    logger.info(f"Streaming prompts from official datasets for extraction (model={model})…")
+    logger.info(f"Streaming prompts from official datasets for extraction (model={model}, batch_size={batch_size})…")
     prompts = _load_dataset_prompts(datasets, max_per_dataset=2 if test else None)
 
     if prompts:
@@ -1582,6 +1696,7 @@ def run_extraction(
             prompts, taxonomy,
             model=model,
             device=device,
+            batch_size=batch_size,
         )
         store.add_templates(ext_tmpls)
         store.add_options(ext_opts)
@@ -1711,6 +1826,9 @@ examples:
     parser.add_argument("--device", type=str, default=None,
                         help="Device for local model inference: cpu, cuda, cuda:0, cuda:1, mps, "
                              "or None for auto-detection.")
+    parser.add_argument("--batch-size", type=int, default=8,
+                        help="Number of prompts per batched LLM forward pass during extraction "
+                             "(default: 8; reduce if you run out of GPU memory).")
 
     # Dataset selection
     parser.add_argument("--datasets", nargs="*", default=None,
@@ -1757,6 +1875,7 @@ examples:
             device=args.device,
             datasets=args.datasets,
             test=args.test,
+            batch_size=args.batch_size,
         )
         #run_augmentation(store, seed=args.seed)
         store.save()
