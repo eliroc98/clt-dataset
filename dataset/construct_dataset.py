@@ -61,13 +61,16 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
+from tqdm import tqdm
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
-OUTPUT_DIR / "taxonomy".mkdir(exist_ok=True)
 
 TAXONOMY_PATH = OUTPUT_DIR / "taxonomy" / "taxonomy.json"
 TEMPLATES_PATH = OUTPUT_DIR / "templates.json"
@@ -497,18 +500,133 @@ def _call_llm(
     )
 
 
+def _repair_json(raw: str) -> dict:
+    """Best-effort extraction and repair of JSON from LLM output."""
+    raw = raw.strip()
+
+    # Strip markdown fences
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```\s*$", "", raw)
+
+    # Try direct parse first
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+
+    # Extract the first top-level JSON object from the text
+    brace_start = raw.find("{")
+    if brace_start == -1:
+        raise ValueError("No JSON object found in LLM output")
+
+    depth = 0
+    in_string = False
+    escape = False
+    end = brace_start
+    for i in range(brace_start, len(raw)):
+        ch = raw[i]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"' and not escape:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+
+    candidate = raw[brace_start : end + 1]
+
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        pass
+
+    # Apply a chain of fixups, re-attempting parse after each one.
+    cleaned = candidate
+
+    fixups = [
+        # 1. Replace single-quoted strings with double-quoted strings
+        lambda s: re.sub(r"(?<=[{,\[])\s*'([^']+?)'\s*:", r' "\1":', s),
+        # 2. Fix trailing commas before ] or }
+        lambda s: re.sub(r",\s*([}\]])", r"\1", s),
+        # 3. Fix unquoted property names:  { key: "val" } → { "key": "val" }
+        lambda s: re.sub(
+            r'(?<=[{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:',
+            r' "\1":',
+            s,
+        ),
+        # 4. Remove control characters that break JSON strings
+        lambda s: re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", s),
+    ]
+
+    for fix in fixups:
+        cleaned = fix(cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+    # 5. Truncation repair: close unclosed strings, brackets, braces.
+    #    Handles "Unterminated string" and missing closing delimiters.
+    patched = cleaned
+    # If there's an unterminated string, close it
+    # Count unescaped quotes — if odd, the last string is unterminated
+    quotes = re.findall(r'(?<!\\)"', patched)
+    if len(quotes) % 2 == 1:
+        # Truncate back to the last complete key-value pair:
+        # find the last comma or opening bracket/brace before the dangling quote
+        last_quote = patched.rfind('"')
+        # Look for the last comma or [ or { before this quote
+        truncate_at = max(
+            patched.rfind(",", 0, last_quote),
+            patched.rfind("[", 0, last_quote),
+            patched.rfind("{", 0, last_quote),
+        )
+        if truncate_at > 0:
+            # Keep everything up to (but not including) the dangling entry
+            if patched[truncate_at] == ",":
+                patched = patched[:truncate_at]
+            else:
+                patched = patched[: truncate_at + 1]
+
+    # Remove any new trailing commas introduced by truncation
+    patched = re.sub(r",\s*$", "", patched)
+
+    # Close unclosed brackets and braces
+    open_brackets = patched.count("[") - patched.count("]")
+    open_braces = patched.count("{") - patched.count("}")
+    if open_brackets > 0 or open_braces > 0:
+        patched += "]" * max(open_brackets, 0)
+        patched += "}" * max(open_braces, 0)
+        patched = re.sub(r",\s*([}\]])", r"\1", patched)
+        try:
+            return json.loads(patched)
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(
+        f"Could not parse JSON from LLM output (length={len(raw)}): "
+        f"{raw[:200]}..."
+    )
+
+
 def _parse_llm_extraction(
     raw: str,
     taxonomy: dict,
 ) -> tuple[list[TaskTemplate], list[Option]]:
     """Parse the JSON returned by the LLM into TaskTemplate / Option objects."""
-    # Strip possible markdown fences
-    raw = raw.strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-
-    data = json.loads(raw)
+    data = _repair_json(raw)
 
     valid_levels = set(LEVELS)
     valid_task_types = set(taxonomy.keys())
@@ -622,8 +740,9 @@ def extract_templates_from_dataset(
     all_templates: dict[str, TaskTemplate] = {}
     all_options: dict[str, Option] = {}
 
-    total = len(prompts)
-    for idx, rec in enumerate(prompts):
+    failures = 0
+    pbar = tqdm(prompts, desc="Extracting templates", unit="prompt")
+    for rec in pbar:
         prompt_text = rec.get("prompt", "")
         if not prompt_text:
             continue
@@ -634,6 +753,9 @@ def extract_templates_from_dataset(
             model=model,
             device=device,
         )
+
+        if not tmpls and not opts:
+            failures += 1
 
         for t in tmpls:
             if t.id not in all_templates:
@@ -652,8 +774,11 @@ def extract_templates_from_dataset(
                     if tid not in existing.compatible_templates:
                         existing.compatible_templates.append(tid)
 
-        if (idx + 1) % 50 == 0 or (idx + 1) == total:
-            logger.info(f"  Extracted {idx+1}/{total} prompts")
+        pbar.set_postfix(
+            templates=len(all_templates),
+            options=len(all_options),
+            failures=failures,
+        )
 
     return list(all_templates.values()), list(all_options.values())
 
@@ -1383,12 +1508,12 @@ def _load_dataset_prompts(
 
     prompts: list[dict] = []
 
-    for ds_name, config in registry.items():
+    pbar = tqdm(registry.items(), desc="Loading datasets", unit="dataset")
+    for ds_name, config in pbar:
+        pbar.set_description(f"Loading {ds_name}")
         if config.get("source") == "skip":
-            logger.info(f"  Skipping {ds_name}")
             continue
 
-        logger.info(f"  Loading: {ds_name}")
         try:
             if config["source"] == "huggingface":
                 samples = load_hf_dataset(config)
@@ -1397,14 +1522,14 @@ def _load_dataset_prompts(
             elif config["source"] == "kcif_github":
                 samples = load_kcif_data(config)
             else:
-                logger.warning(f"    Unknown source type: {config['source']}")
+                tqdm.write(f"WARNING: Unknown source type for {ds_name}: {config['source']}")
                 continue
         except Exception as e:
-            logger.error(f"    Error loading {ds_name}: {e}")
+            tqdm.write(f"ERROR: Failed to load {ds_name}: {e}")
             continue
 
         if not samples:
-            logger.warning(f"    No samples for {ds_name}")
+            tqdm.write(f"WARNING: No samples for {ds_name}")
             continue
 
         instruction_fields = config.get("instruction_fields", [])
@@ -1417,7 +1542,8 @@ def _load_dataset_prompts(
                 if max_per_dataset is not None and ds_count >= max_per_dataset:
                     break
 
-        logger.info(f"    {ds_name}: {len(samples)} samples → {ds_count} prompts")
+        tqdm.write(f"INFO:   {ds_name}: {len(samples)} samples → {ds_count} prompts")
+        pbar.set_postfix(prompts=len(prompts))
 
     logger.info(f"  Total prompts loaded: {len(prompts)}")
     return prompts
@@ -1632,7 +1758,7 @@ examples:
             datasets=args.datasets,
             test=args.test,
         )
-        run_augmentation(store, seed=args.seed)
+        #run_augmentation(store, seed=args.seed)
         store.save()
     else:
         store = TemplateStore.load()
