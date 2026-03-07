@@ -24,6 +24,9 @@ _MODEL_CACHE: dict[str, tuple[Any, Any]] = {}
 # Maps model_name → outlines.Transformers wrapper (created lazily).
 _OUTLINES_CACHE: dict[str, Any] = {}
 
+# Maps (model_name, schema_key) → outlines.Generator (created lazily).
+_GENERATOR_CACHE: dict[tuple[str, str], Any] = {}
+
 
 def _apply_chat_template(
     tokenizer: Any,
@@ -64,6 +67,34 @@ def _get_outlines_model(model_name: str, *, device: str | None = None) -> Any:
     outlines_model = outlines.from_transformers(model, tokenizer)
     _OUTLINES_CACHE[model_name] = outlines_model
     return outlines_model
+
+
+def _get_generator(model_name: str, json_schema: Any, *, device: str | None = None) -> Any:
+    """Return a cached ``outlines.Generator`` for *model_name* + *json_schema*.
+
+    Building the Generator compiles the JSON-schema FSM against the full
+    model vocabulary — this is expensive and must only happen once.
+    """
+    import outlines
+    import json as _json
+
+    # Derive a stable cache key from the schema
+    if hasattr(json_schema, "model_json_schema"):
+        schema_key = _json.dumps(json_schema.model_json_schema(), sort_keys=True)
+    elif isinstance(json_schema, dict):
+        schema_key = _json.dumps(json_schema, sort_keys=True)
+    else:
+        schema_key = str(json_schema)
+
+    cache_key = (model_name, schema_key)
+    if cache_key in _GENERATOR_CACHE:
+        return _GENERATOR_CACHE[cache_key]
+
+    outlines_model = _get_outlines_model(model_name, device=device)
+    schema_type = outlines.json_schema(json_schema)
+    generator = outlines.Generator(outlines_model, schema_type)
+    _GENERATOR_CACHE[cache_key] = generator
+    return generator
 
 
 def _resolve_token() -> str | None:
@@ -203,19 +234,13 @@ def generate_text(
     """
     # ── Structured-output path (outlines) ───────────────────────────
     if json_schema is not None:
-        import outlines
         from outlines.inputs import Chat
 
-        outlines_model = _get_outlines_model(model_name, device=device)
-        schema_type = outlines.json_schema(json_schema)
-        generator = outlines.Generator(outlines_model, schema_type)
+        generator = _get_generator(model_name, json_schema, device=device)
 
         gen_kwargs: dict[str, Any] = dict(max_new_tokens=max_new_tokens)
         if temperature > 0:
-            gen_kwargs["do_sample"] = True
             gen_kwargs["temperature"] = temperature
-        else:
-            gen_kwargs["do_sample"] = False
 
         result = generator(Chat(messages), **gen_kwargs)
         return result if isinstance(result, str) else str(result)
@@ -292,21 +317,31 @@ def generate_text_batch(
     """
     # ── Structured-output path (outlines) ───────────────────────────
     if json_schema is not None:
-        # Outlines Generator does not natively batch over Chat inputs,
-        # so we loop — the logits processor still guarantees schema
-        # compliance on every call.
-        return [
-            generate_text(
-                model_name,
-                msgs,
-                temperature=temperature,
-                max_new_tokens=max_new_tokens,
-                device=device,
-                enable_thinking=enable_thinking,
-                json_schema=json_schema,
-            )
-            for msgs in batch_messages
-        ]
+        from outlines.inputs import Chat
+
+        generator = _get_generator(model_name, json_schema, device=device)
+
+        gen_kwargs: dict[str, Any] = dict(max_new_tokens=max_new_tokens)
+        if temperature > 0:
+            gen_kwargs["temperature"] = temperature
+
+        prompts = [Chat(msgs) for msgs in batch_messages]
+        try:
+            results = generator(prompts, **gen_kwargs)
+            return [r if isinstance(r, str) else str(r) for r in results]
+        except Exception:
+            # Fall back to sequential if the batched call fails
+            return [
+                generate_text(
+                    model_name, msgs,
+                    temperature=temperature,
+                    max_new_tokens=max_new_tokens,
+                    device=device,
+                    enable_thinking=enable_thinking,
+                    json_schema=json_schema,
+                )
+                for msgs in batch_messages
+            ]
 
     # ── Free-form batched path ──────────────────────────────────────
     import torch

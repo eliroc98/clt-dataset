@@ -315,6 +315,9 @@ Each option object has:
 Rules:
 - A single prompt may contain MULTIPLE templates (e.g. a task + several constraints).
 - Templates should be GENERAL: replace specific values with {slot} placeholders.
+- You will see prompts with a text explaining something and then a question about it. For example,
+    "George wants to warm his hands quickly by rubbing them. Which skin surface will produce the most heat?\n{\"text\": [\"dry palms\", \"wet palms\", \"palms covered with oil\", \"palms covered with lotion\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}"
+    In this case, the template just have the question mark and the A. B. C. D.. Everything else should be an option. So the template would be "{question}? A.{option} B.{option} C.{option} D.{option}" and the options would be "dry palms", "wet palms", "palms covered with oil", "palms covered with lotion", while the questio is "George wants to warm his hands quickly by rubbing them. Which skin surface will produce the most heat
 - Options should be the SPECIFIC values removed from the prompt.
 - An option may be compatible with MULTIPLE task types — list all plausible ones.
 - Use the taxonomy labels provided; do not invent new ones.
