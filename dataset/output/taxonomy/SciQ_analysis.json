@@ -1,0 +1,52 @@
+{
+  "dataset": "SciQ",
+  "n_samples": 2000,
+  "schema": [
+    "question",
+    "distractor3",
+    "distractor1",
+    "distractor2",
+    "correct_answer",
+    "support"
+  ],
+  "category_counts": {},
+  "task_type_prevalence": {
+    "summarization": 0.0055,
+    "question_answering": 0.2065,
+    "multiple_choice_qa": 0.0115,
+    "math_reasoning": 0.0255,
+    "yes_no_qa": 0.014,
+    "code_generation": 0.008,
+    "commonsense_reasoning": 0.0055,
+    "text_completion": 0.0015,
+    "explanation": 0.014,
+    "instruction_following": 0.015,
+    "data_analysis": 0.026,
+    "reading_comprehension": 0.0095,
+    "logical_reasoning": 0.01,
+    "translation": 0.002,
+    "open_ended_qa": 0.007,
+    "information_extraction": 0.002,
+    "sentiment_analysis": 0.0005,
+    "creative_writing": 0.0015,
+    "fact_verification": 0.0005,
+    "planning": 0.0005,
+    "classification": 0.0005,
+    "dialogue_conversation": 0.0015,
+    "role_playing": 0.002
+  },
+  "format_constraint_prevalence": {
+    "multiple_sections": 0.0235,
+    "end_checker": 0.0005,
+    "specific_format": 0.0005,
+    "postscript": 0.0005,
+    "highlighted_sections": 0.0005
+  },
+  "sample_instructions": [
+    "What type of organism is commonly used in preparation of foods such as cheese and yogurt?\nMesophiles grow best in moderate temperature, typically between 25\u00b0C and 40\u00b0C (77\u00b0F and 104\u00b0F). Mesophiles are often found living in or on the bodies of humans or other animals. The optimal growth temperature of many pathogenic mesophiles is 37\u00b0C (98\u00b0F), the normal human body temperature. Mesophilic organisms have important uses in food preparation, including cheese, yogurt, beer and wine.",
+    "What phenomenon makes global winds blow northeast to southwest or the reverse in the northern hemisphere and northwest to southeast or the reverse in the southern hemisphere?\nWithout Coriolis Effect the global winds would blow north to south or south to north. But Coriolis makes them blow northeast to southwest or the reverse in the Northern Hemisphere. The winds blow northwest to southeast or the reverse in the southern hemisphere.",
+    "Changes from a less-ordered state to a more-ordered state (such as a liquid to a solid) are always what?\nSummary Changes of state are examples of phase changes, or phase transitions. All phase changes are accompanied by changes in the energy of a system. Changes from a more-ordered state to a less-ordered state (such as a liquid to a gas) areendothermic. Changes from a less-ordered state to a more-ordered state (such as a liquid to a solid) are always exothermic. The conversion of a solid to a l",
+    "What is the least dangerous radioactive decay?\nAll radioactive decay is dangerous to living things, but alpha decay is the least dangerous.",
+    "Kilauea in hawaii is the world\u2019s most continuously active volcano. very active volcanoes characteristically eject red-hot rocks and lava rather than this?\nExample 3.5 Calculating Projectile Motion: Hot Rock Projectile Kilauea in Hawaii is the world\u2019s most continuously active volcano. Very active volcanoes characteristically eject red-hot rocks and lava rather than smoke and ash. Suppose a large rock is ejected from the volcano with a speed of 25.0 m/s and at an angle 35.0\u00ba above the horizontal, "
+  ]
+}

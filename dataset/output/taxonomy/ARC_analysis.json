@@ -1,0 +1,41 @@
+{
+  "dataset": "ARC",
+  "n_samples": 1119,
+  "schema": [
+    "id",
+    "question",
+    "choices",
+    "answerKey"
+  ],
+  "category_counts": {},
+  "task_type_prevalence": {
+    "question_answering": 0.2904,
+    "multiple_choice_qa": 0.1099,
+    "commonsense_reasoning": 0.1323,
+    "explanation": 0.0107,
+    "math_reasoning": 0.0098,
+    "logical_reasoning": 0.0197,
+    "yes_no_qa": 0.0098,
+    "planning": 0.0018,
+    "data_analysis": 0.0313,
+    "code_generation": 0.008,
+    "reading_comprehension": 0.0027,
+    "information_extraction": 0.0009,
+    "instruction_following": 0.0107,
+    "text_completion": 0.0009,
+    "classification": 0.0045
+  },
+  "format_constraint_prevalence": {
+    "number_placeholder": 0.0054,
+    "forbidden_words": 0.0009,
+    "choose_from": 0.0009,
+    "multiple_sections": 0.0018
+  },
+  "sample_instructions": [
+    "George wants to warm his hands quickly by rubbing them. Which skin surface will produce the most heat?\n{\"text\": [\"dry palms\", \"wet palms\", \"palms covered with oil\", \"palms covered with lotion\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+    "Which of the following statements best explains why magnets usually stick to a refrigerator door?\n{\"text\": [\"The refrigerator door is smooth.\", \"The refrigerator door contains iron.\", \"The refrigerator door is a good conductor.\", \"The refrigerator door has electric wires in it.\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+    "A fold observed in layers of sedimentary rock most likely resulted from the\n{\"text\": [\"cooling of flowing magma.\", \"converging of crustal plates.\", \"deposition of river sediments.\", \"solution of carbonate minerals.\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+    "Which of these do scientists offer as the most recent explanation as to why many plants and animals died out at the end of the Mesozoic era?\n{\"text\": [\"worldwide disease\", \"global mountain building\", \"rise of mammals that preyed upon plants and animals\", \"impact of an asteroid created dust that blocked the sunlight\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+    "A boat is acted on by a river current flowing north and by wind blowing on its sails. The boat travels northeast. In which direction is the wind most likely applying force to the sails of the boat?\n{\"text\": [\"west\", \"east\", \"north\", \"south\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}"
+  ]
+}

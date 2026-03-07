@@ -1,0 +1,34 @@
+{
+  "dataset": "TriviaQA",
+  "n_samples": 2000,
+  "schema": [
+    "question",
+    "question_id",
+    "question_source",
+    "entity_pages",
+    "search_results",
+    "answer"
+  ],
+  "category_counts": {},
+  "task_type_prevalence": {
+    "data_analysis": 0.0005,
+    "question_answering": 0.1125,
+    "math_reasoning": 0.0065,
+    "reading_comprehension": 0.0055,
+    "yes_no_qa": 0.002,
+    "explanation": 0.0015,
+    "planning": 0.0015,
+    "translation": 0.0005,
+    "code_generation": 0.0005
+  },
+  "format_constraint_prevalence": {
+    "multiple_sections": 0.0005
+  },
+  "sample_instructions": [
+    "Which American-born Sinclair won the Nobel Prize for Literature in 1930?",
+    "Where in England was Dame Judi Dench born?",
+    "In which decade did Billboard magazine first publish and American hit chart?",
+    "From which country did Angola achieve independence in 1975?",
+    "Which city does David Soul come from?"
+  ]
+}

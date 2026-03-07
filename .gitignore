@@ -1,0 +1,28 @@
+# API credentials — never commit these
+.env
+.env.*
+
+# Python
+__pycache__/
+dataset/__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+.pyenv/
+.vscode/
+*.drawio
+*.drawio.bkp
+
+*.lock
+
+# Data / outputs (large files)
+dataset/output/options.json
+dataset/output/templates.json
+dataset/output/constructed_prompts.jsonl
+
+# OS
+.DS_Store
+
+dataset/old_construct_dataset.py
