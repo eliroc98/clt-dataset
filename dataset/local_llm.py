@@ -87,14 +87,14 @@ def load_model(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # device_map: "auto" distributes across all GPUs; a specific device
-    # ("cuda", "cuda:0", etc.) pins everything to that device via a dict;
-    # CPU/MPS don't use device_map at all.
+    # device_map="auto" distributes across all GPUs (requires accelerate).
+    # For any specific device we skip device_map and use .to(device) below,
+    # which avoids the accelerate dependency.
     if device == "auto":
         _device_map: Any = "auto"
-    elif device.startswith("cuda"):
-        _device_map = {"": device}
     else:
+        # For a specific CUDA device, MPS, or CPU: load without device_map
+        # (avoids the `accelerate` requirement) and move below with .to(device).
         _device_map = None
 
     model = AutoModelForCausalLM.from_pretrained(
