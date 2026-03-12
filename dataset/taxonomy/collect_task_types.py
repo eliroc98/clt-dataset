@@ -27,7 +27,7 @@ from tqdm import tqdm
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = BASE_DIR / "output" / "taxonomy"
 OUTPUT_DIR.mkdir(exist_ok=True)
 

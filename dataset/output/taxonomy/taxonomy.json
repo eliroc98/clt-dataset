@@ -1,1092 +1,467 @@
 {
-  "question_answering": {
-    "level": "content_task",
-    "description": "General question answering",
-    "discovered_from": [
-      "ARC",
-      "Alpaca",
-      "Arena Hard",
-      "BIGBench",
-      "Boolq",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "GSM8K",
-      "IFEval",
-      "KCIFData",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "TriviaQA",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a resume for a fresh high school graduate who is seeking their first job. Make sure to include at least 12 placeholder represented by square brackets, such as [address], [name].",
-      "What is a name that people call God? Please give exactly two different responses. Separate the responses with 6 asterisk symbols: ******.",
-      "Find out how many times does the word appear in the document. output the number of times.\nThe quick brown fox jumps over the lazy dog.\n\n"
-    ]
-  },
-  "multiple_choice_qa": {
-    "level": "content_task",
-    "description": "Multiple-choice questions with labelled options",
-    "discovered_from": [
-      "ARC",
-      "BIGBench"
-    ],
-    "n_patterns": 2,
-    "examples": [
-      "Analyze the provided text to pinpoint a category and the sentiment (positive, neutral, or negative) it emanates. Additionally, perform named entity recognition to emphasize notable entities and also identify the core topic discussed. Select the category from this array: company, educational institut",
-      "Analyze the provided text to ascertain both the category and the sentiment (positive, neutral, or negative) it embodies. Additionally, conduct named entity recognition to emphasize important entities and establish the central theme. Moreover, undertake keyword extraction to mark prominent words, and",
-      "A table-tennis championship for $2^n$ players is organized as a knock-out tournament with $n$ rounds, the last round being the final. Two players are chosen at random. Calculate the probability that they meet: (a) in the first round, (b) in the final, (c) in any round."
-    ]
-  },
-  "yes_no_qa": {
-    "level": "content_task",
-    "description": "Yes/no or true/false questions",
-    "discovered_from": [
-      "Boolq",
-      "GSM8K",
-      "LIMA",
-      "P3"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Slater type orbitals (STO) are considered to be more accurate than gaussian type orbitals (GTO) for atomic and molecular QM calculations because - among other reasons - they decay with $e^{-\\alpha r}$ as $r \\to \\infty$. But GTOs are more popular because they are easier to calculate with. GTOs decay ",
-      "\nGiven the following passage\n\n\"Hume maintained that all knowledge, even the most basic beliefs about the natural world, cannot be conclusively established by reason. Rather, he maintained, our beliefs are more a result of accumulated habits, developed in response to accumulated sense experiences. Am",
-      "Boron only occurs naturally in compounds with what element?\nOccurrence, Preparation, and Compounds of Boron and Silicon Boron constitutes less than 0.001% by weight of the earth\u2019s crust. In nature, it only occurs in compounds with oxygen. Boron is widely distributed in volcanic regions as boric acid"
-    ]
-  },
-  "open_ended_qa": {
-    "level": "content_task",
-    "description": "Open-ended questions requiring elaboration",
-    "discovered_from": [
-      "DollyV2"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Find out how many people are affected by the issue and explain why it's important to know this number. Output:",
-      "Describe how to incorporate AI in the private equity deal sourcing process"
-    ]
-  },
-  "reading_comprehension": {
-    "level": "content_task",
-    "description": "Answer based on a provided passage",
-    "discovered_from": [
-      "DROP",
-      "FollowBench",
-      "LIMA",
-      "P3"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Rank these users according to their social influence.\nUser: The new movie is great. I would recommend it to anyone who likes action movies.\n\n",
-      "What are the primary objections Democrats have to a border wall?\nIt's not clear to me that Democrats are opposed to border-wall construction (your one source suggests they are fine with border walls/fences where necessary), so much as they opposed to some of the plans for full-border walls that have",
-      "What is the sole responsibility of business according to Milton Friedman, while also considering its implications on societal ethics?"
-    ]
-  },
-  "summarization": {
-    "level": "content_task",
-    "description": "Condense text into a summary",
-    "discovered_from": [
-      "Alpaca",
-      "DollyV2",
-      "FollowBench",
-      "IFEval",
-      "LIMA",
-      "P3",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a 300+ word summary of the wikipedia page \"https://en.wikipedia.org/wiki/Raymond_III,_Count_of_Tripoli\". Do not use any commas and highlight at least 3 sections that has titles in markdown format, for example *highlighted section part 1*, *highlighted section part 2*, *highlighted section part",
-      "Changes from a less-ordered state to a more-ordered state (such as a liquid to a solid) are always what?\nSummary Changes of state are examples of phase changes, or phase transitions. All phase changes are accompanied by changes in the energy of a system. Changes from a more-ordered state to a less-o"
-    ]
-  },
-  "classification": {
-    "level": "content_task",
-    "description": "Assign a label or category to input",
-    "discovered_from": [
-      "ARC",
-      "Alpaca",
-      "Arena Hard",
-      "Boolq",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "sentiment_analysis": {
-    "level": "content_task",
-    "description": "Determine the sentiment of text",
-    "discovered_from": [
-      "P3",
-      "Self-Instruct"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Task: Given the title of the news article, tell me whether it is positive or negative. output one of the following categories: 1) positive; 2) negative; 3) mixed.\n\nArticle title: I had a great day today. The weather was beautiful and I spent time with friends and family.\n\n",
-      "Task: Identify the sentiment of the following sentence. output 1 for positive, 0 for negative and -1 for neutral.\n\nThe weather in San Francisco is terrible today.\n\n",
-      "Identify one category from the list below for the input text, and also infer the sentiment (positive, neutral, or negative) conveyed in the text. Your options for the category are - company, educational institution, artist, athlete, office holder, mean of transportation, building, natural place, vil"
-    ]
-  },
-  "brainstorming": {
-    "level": "content_task",
-    "description": "Generate a list of ideas or options",
-    "discovered_from": [
-      "Alpaca",
-      "Arena Hard",
-      "Boolq",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "IFEval",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "TriviaQA",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Imagine you are a detective investigating a murder case. You have collected various pieces of evidence, including witness statements and physical objects found at the crime scene. However, the suspect has not been identified yet. \nYou decide to use a language model AI system to generate a list of po"
-    ]
-  },
-  "creative_writing": {
-    "level": "content_task",
-    "description": "Produce creative or literary text",
-    "discovered_from": [
-      "Alpaca",
-      "BIGBench",
-      "DollyV2",
-      "FollowBench",
-      "IFEval",
-      "LIMA",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a letter to a friend in all lowercase letters ask them to go and vote.",
-      "Write a blog post with 400 or more words about the benefits of sleeping in a hammock.",
-      "Write a story of exactly 2 paragraphs about a man who wakes up one day and realizes that he's inside a video game. Separate the paragraphs with the markdown divider: ***"
-    ]
-  },
-  "code_generation": {
-    "level": "content_task",
-    "description": "Write or complete code",
-    "discovered_from": [
-      "Alpaca",
-      "Arena Hard",
-      "FollowBench",
-      "LIMA",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Should i take this class or not?\nThe professor of this class is not good at all. He doesn't teach well and he is always late for class.\n\n",
-      "Please develop a Python program that generates a list of prime numbers up to a specific upper limit value provided by the user by applying the Sieve of Eratosthenes algorithm, while ensuring that the program also optimizes the memory usage and runs in a timely manner even when dealing with extremely",
-      "Imagine you are a detective investigating a murder case. You have collected various pieces of evidence, including witness statements and physical objects found at the crime scene. However, the suspect has not been identified yet. \nYou decide to use a language model AI system to generate a list of po"
-    ]
-  },
-  "math_reasoning": {
-    "level": "content_task",
-    "description": "Mathematical problem solving",
-    "discovered_from": [
-      "Alpaca",
-      "Arena Hard",
-      "BIGBench",
-      "DROP",
-      "FLAN",
-      "FollowBench",
-      "GSM8K",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "As an online platform teacher named Aimee, you possess impeccable credentials which include a Bachelor of Science degree in Industrial and Labor Relations from Cornell University, expertise in the English language, and intermediate proficiency in both Chinese and Spanish. Additionally, your professi",
-      "Imagine a scenario where you are required to anonymize a statement without using proper nouns or third-person pronouns. Your task is to transform the sentence \"The quick brown fox jumps over the lazy dog\" into an anonymous form using only three letters. Can you solve this puzzle?",
-      "View tabular file such as CSV from command line, having horizontal and vertical scrolling would be great.\nSure, please take a look at csvkit. It provides a set of tools that adhere to the UNIX philosophy (meaning they are small, simple, single-purposed and can be combined). \n\nHere is an example that"
-    ]
-  },
-  "logical_reasoning": {
-    "level": "content_task",
-    "description": "Logical or deductive reasoning",
-    "discovered_from": [
-      "LIMA"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Slater type orbitals (STO) are considered to be more accurate than gaussian type orbitals (GTO) for atomic and molecular QM calculations because - among other reasons - they decay with $e^{-\\alpha r}$ as $r \\to \\infty$. But GTOs are more popular because they are easier to calculate with. GTOs decay ",
-      "Why does this throw ```NullPointerException```\n```public static void main(String[] args) throws Exception {\n    Boolean b = true ? returnsNull() : false; // NPE on this line.\n    System.out.println(b);\n}\npublic static Boolean returnsNull() {\n    return null;\n}\n```\nwhile this doesn't\n```public static",
-      "I need to be able to open a document using its default application in Windows and Mac OS. Basically, I want to do the same thing that happens when you double-click on the document icon in Explorer or Finder. What is the best way to do this in Python?\n```open``` and ```start``` are command-interprete"
-    ]
-  },
-  "commonsense_reasoning": {
-    "level": "content_task",
-    "description": "Commonsense inference",
-    "discovered_from": [
-      "ARC",
-      "BIGBench",
-      "LIMA"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Imagine you are a detective investigating a murder case. You have collected various pieces of evidence, including witness statements and physical objects found at the crime scene. However, the suspect has not been identified yet. \nYou decide to use a language model AI system to generate a list of po",
-      "A fold observed in layers of sedimentary rock most likely resulted from the\n{\"text\": [\"cooling of flowing magma.\", \"converging of crustal plates.\", \"deposition of river sediments.\", \"solution of carbonate minerals.\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
-      "A boat is acted on by a river current flowing north and by wind blowing on its sails. The boat travels northeast. In which direction is the wind most likely applying force to the sails of the boat?\n{\"text\": [\"west\", \"east\", \"north\", \"south\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}"
-    ]
-  },
-  "information_extraction": {
-    "level": "content_task",
-    "description": "Extract structured info from unstructured text",
-    "discovered_from": [
-      "ARC",
-      "Alpaca",
-      "Arena Hard",
-      "BIGBench",
-      "Boolq",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "GSM8K",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Please develop a Python program that generates a list of prime numbers up to a specific upper limit value provided by the user by applying the Sieve of Eratosthenes algorithm, while ensuring that the program also optimizes the memory usage and runs in a timely manner even when dealing with extremely",
-      "How can I use Python code to extract and analyze data from an external API to identify potential external factors that might influence the observed trends in my data tables?\nHere's an example code that uses Python's requests library to fetch data from an external API and pandas library to analyze th",
-      "Identify one category and the sentiment conveyed (positive, neutral, or negative) in the input text, as well as conduct a named entity recognition task to locate and highlight the important entities present. You can choose the category from the following: company, educational institution, artist, at"
-    ]
-  },
-  "translation": {
-    "level": "content_task",
-    "description": "Translate between languages",
-    "discovered_from": [
-      "FollowBench",
-      "LIMA",
-      "Self-Instruct"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Does Java casting introduce overhead? Or the compiler just resolves everything and there is no cost at run time?\nIs this a general things, or there are different cases?\nThere are 2 types of casting in Java:\n\nImplicit casting, when you cast from a type to a wider type, which is done automatically and"
-    ]
-  },
-  "rewriting_paraphrasing": {
-    "level": "content_task",
-    "description": "Rephrase or simplify existing text",
-    "discovered_from": [
-      "Alpaca",
-      "Arena Hard",
-      "BIGBench",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "IFEval",
-      "KCIFData",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "explanation": {
-    "level": "content_task",
-    "description": "Explain a concept or process",
-    "discovered_from": [
-      "ARC",
-      "Alpaca",
-      "Arena Hard",
-      "BIGBench",
-      "Boolq",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "IFEval",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Find out how many people are affected by the issue and explain why it's important to know this number. Output:",
-      "Explain the engineering design process.\n",
-      "Explain the concept of descriptive writing.\n"
-    ]
-  },
-  "dialogue_conversation": {
-    "level": "content_task",
-    "description": "Generate conversation turns",
-    "discovered_from": [
-      "LIMA"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a dialogue between two people, one is dressed up in a ball gown and the other is dressed down in sweats. The two are going to a nightly event. Your answer must contain exactly 3 bullet points in the markdown format (use \"* \" to indicate each bullet) such as:\n* This is the first point.\n* This i"
-    ]
-  },
-  "fact_verification": {
-    "level": "content_task",
-    "description": "Verify factual claims",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": [
-      "To our IBS Customers that are still hanging in there:  We understand your continued frustration and express our sincerest apologies for our inability to give complete and accurate answers to your questions. The problems that we are seeing are one of three (3) possibilities:  1)  You have entered you"
-    ]
-  },
-  "text_completion": {
-    "level": "content_task",
-    "description": "Complete or continue text",
-    "discovered_from": [
-      "Alpaca",
-      "FollowBench",
-      "IFEval",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "role_playing": {
-    "level": "content_task",
-    "description": "Adopt a persona",
-    "discovered_from": [
-      "Arena Hard",
-      "LIMA"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Imagine you are a detective investigating a murder case. You have collected various pieces of evidence, including witness statements and physical objects found at the crime scene. However, the suspect has not been identified yet. \nYou decide to use a language model AI system to generate a list of po"
-    ]
-  },
-  "planning": {
-    "level": "content_task",
-    "description": "Create a plan or schedule",
-    "discovered_from": [
-      "Alpaca",
-      "BIGBench",
-      "Boolq",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "IFEval",
-      "LIMA",
-      "P3",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "I am planning a trip to Japan, and I would like thee to write an itinerary for my journey in a Shakespearean style. You are not allowed to use any commas in your response.",
-      "Edit the text to make the meaning more precise.\nThe President announced an ambitious plan to cut taxes for all Americans.",
-      "Here's an updated version of the prompt:\r\n\r\nAs a Travel Agency, you are tasked with creating a new tour package that showcases the best of Kagawa Prefecture's udon cuisine. Design an itinerary that includes visits to at least five different udon shops in the region, and provide detailed descriptions"
-    ]
-  },
-  "data_analysis": {
-    "level": "content_task",
-    "description": "Analyze or interpret data",
-    "discovered_from": [
-      "ARC",
-      "Alpaca",
-      "Arena Hard",
-      "Boolq",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "In what ways can you expand the scope and depth of data analysis to increase the precision and accuracy of an algorithm specifically developed to predict weather patterns in a particular region, taking into account multiple factors such as historical data, temperature, humidity, wind speed, and atmo",
-      "The SideEffect class can be used to evaluate the side effects of a drug based on different dosing regimens. This information is important in determining the safety of the drug and its potential benefits for patients. For instance, if a drug has a high incidence of side effects, it may be necessary t",
-      "Please provide a detailed use-case scenario that demonstrates the capabilities of autonomous robots with complete autonomy in a highly complex and dynamic environment. The use-case should involve multiple robots collaborating and communicating with each other in real-time, utilizing advanced machine"
-    ]
-  },
-  "number_paragraphs": {
-    "level": "format",
-    "description": "Specify number of paragraphs",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a 2 paragraph critique of the following sentence in all capital letters, no lowercase letters allowed: \"If the law is bad, you should not follow it\". Label each paragraph with PARAGRAPH X.",
-      "Write a story of exactly 2 paragraphs about a man who wakes up one day and realizes that he's inside a video game. Separate the paragraphs with the markdown divider: ***"
-    ]
-  },
-  "number_words": {
-    "level": "format",
-    "description": "Specify number/range of words",
-    "discovered_from": [
-      "FollowBench",
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a long email template that invites a group of participants to a meeting, with at least 500 words. The email must include the keywords \"correlated\" and \"experiencing\" and should not use any commas.",
-      "Write a short blog post about a trip to Japan using less than 300 words."
-    ]
-  },
-  "number_sentences": {
-    "level": "format",
-    "description": "Specify number of sentences",
-    "discovered_from": [
-      "IFEval",
-      "Self-Instruct"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "paragraph_first_word": {
-    "level": "format",
-    "description": "Constrain first word of each paragraph",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "number_bullets": {
-    "level": "format",
-    "description": "Use bullet points or numbered lists",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a dialogue between two people, one is dressed up in a ball gown and the other is dressed down in sweats. The two are going to a nightly event. Your answer must contain exactly 3 bullet points in the markdown format (use \"* \" to indicate each bullet) such as:\n* This is the first point.\n* This i",
-      "As an online platform teacher named Aimee, you possess impeccable credentials which include a Bachelor of Science degree in Industrial and Labor Relations from Cornell University, expertise in the English language, and intermediate proficiency in both Chinese and Spanish. Additionally, your professi"
-    ]
-  },
-  "title_required": {
-    "level": "format",
-    "description": "Must include a title",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "multiple_sections": {
-    "level": "format",
-    "description": "Organize into sections",
-    "discovered_from": [
-      "IFEval",
-      "LIMA"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a 300+ word summary of the wikipedia page \"https://en.wikipedia.org/wiki/Raymond_III,_Count_of_Tripoli\". Do not use any commas and highlight at least 3 sections that has titles in markdown format, for example *highlighted section part 1*, *highlighted section part 2*, *highlighted section part",
-      "Why does this throw ```NullPointerException```\n```public static void main(String[] args) throws Exception {\n    Boolean b = true ? returnsNull() : false; // NPE on this line.\n    System.out.println(b);\n}\npublic static Boolean returnsNull() {\n    return null;\n}\n```\nwhile this doesn't\n```public static",
-      "How do DOS games like DOOM benefit from a PCI graphics card?\nDOOM itself doesn\u2019t do anything special to benefit from PCI graphics cards. It runs faster with PCI graphics cards (and VLB, AGP, and PCI Express cards) than with ISA graphics cards because the supporting bus is faster, so reads from and w"
-    ]
-  },
-  "json_format": {
-    "level": "format",
-    "description": "Output in JSON",
-    "discovered_from": [
-      "IFEval",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Can you help me make an advertisement for a new product? It's a diaper that's designed to be more comfortable for babies and I want the entire output in JSON format.",
-      "Please provide the names of 5 famous moms in JSON format. Please, use any interesting or weird tone. Your entire output should just contain a JSON block, nothing else.",
-      "How can I use Python code to extract and analyze data from an external API to identify potential external factors that might influence the observed trends in my data tables?\nHere's an example code that uses Python's requests library to fetch data from an external API and pandas library to analyze th"
-    ]
-  },
-  "xml_format": {
-    "level": "format",
-    "description": "Output in XML",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "specific_format": {
-    "level": "format",
-    "description": "Adhere to a specified output format",
-    "discovered_from": [
-      "KCIFData"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "I'm converting a video to GIF file with ```ffmpeg```:\n```ffmpeg \\\n  -i input.flv \\\n  -ss 00:00:00.000 \\\n  -pix_fmt rgb24 \\\n  -r 10 \\\n  -s 320x240 \\\n  -t 00:00:10.000 \\\n  output.gif\n```\nIt works great, but output gif file has a very low quality.\nAny ideas how can I improve quality of converted gif?\nI"
-    ]
-  },
-  "postscript": {
-    "level": "format",
-    "description": "Include a postscript",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "number_placeholder": {
-    "level": "format",
-    "description": "Include placeholders",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": [
-      "Write a resume for a fresh high school graduate who is seeking their first job. Make sure to include at least 12 placeholder represented by square brackets, such as [address], [name].",
-      "Photosynthesis is a process involving carbon dioxide, water, glucose, oxygen, and sunlight. Which is the correct chemical equation for photosynthesis?\n{\"text\": [\"O_{2} + H_{2}O + energy -> C_{6}H_{12}O_{6} + CO_{2}\", \"CO_{2} + H_{2}O -> C_{6}H_{6}O_{3} + O_{2} + energy\", \"6O_{2} + 6H_{2}O -> C_{6}H_"
-    ]
-  },
-  "highlighted_sections": {
-    "level": "format",
-    "description": "Highlight / bold / italic text",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a 300+ word summary of the wikipedia page \"https://en.wikipedia.org/wiki/Raymond_III,_Count_of_Tripoli\". Do not use any commas and highlight at least 3 sections that has titles in markdown format, for example *highlighted section part 1*, *highlighted section part 2*, *highlighted section part",
-      "Write me a resume for Matthias Algiers. Use words with all capital letters to highlight key abilities, but make sure that words with all capital letters appear less than 10 times. Wrap the entire response with double quotation marks.",
-      "Identify one category and the sentiment conveyed (positive, neutral, or negative) in the input text, as well as conduct a named entity recognition task to locate and highlight the important entities present. You can choose the category from the following: company, educational institution, artist, at"
-    ]
-  },
-  "choose_from": {
-    "level": "format",
-    "description": "Choose answer from a constrained set",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "two_responses": {
-    "level": "format",
-    "description": "Provide two alternative responses",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": [
-      "What is a name that people call God? Please give exactly two different responses. Separate the responses with 6 asterisk symbols: ******."
-    ]
-  },
-  "response_language": {
-    "level": "style",
-    "description": "Respond in a specific language",
-    "discovered_from": [
-      "IFEval",
-      "KCIFData"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "SOLVE THIS IN C++ : There are three cards with letters a\n, b\n, c\n placed in a row in some order. You can do the following operation at most once:\n\nPick two cards, and swap them.\nIs it possible that the row becomes abc\n after the operation? Output \"YES\" if it is possible, and \"NO\" otherwise.\nInput\nTh",
-      "print the text associated with the option label that answers the question correctly.  However, if the correct answer is a numeric value with no additional text (including percentages, currency, units of measurement etc), print the numeric answer in words. For example, if the answer is '32' print 'th"
-    ]
-  },
-  "all_uppercase": {
-    "level": "style",
-    "description": "Write entirely in uppercase",
-    "discovered_from": [
-      "KCIFData"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "all_lowercase": {
-    "level": "style",
-    "description": "Write entirely in lowercase",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Given the sentence \"Two young boys with toy guns and horns.\" can you ask a question? Please ensure that your response is in English, and in all lowercase letters. No capital letters are allowed.",
-      "Write a letter to a friend in all lowercase letters ask them to go and vote.",
-      "Write a detailed review of the movie \"The Social Network\". Your entire response should be in English and all lower case (no capital letters whatsoever)."
-    ]
-  },
-  "capital_word_frequency": {
-    "level": "style",
-    "description": "Control frequency of capitalized words",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "end_checker": {
-    "level": "style",
-    "description": "End response with specific text",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": [
-      "Alice and Bob have two dice. \n\nThey roll the dice together, note the sum of the two values shown, and repeat.\n\nFor Alice to win, two consecutive turns (meaning, two consecutive sums) need to result in 7. For Bob to win, he needs to see an eight followed by a seven. Who do we expect to win this game?"
-    ]
-  },
-  "quotation": {
-    "level": "style",
-    "description": "Include or wrap text in quotation marks",
-    "discovered_from": [
-      "IFEval",
-      "KCIFData"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write me a resume for Matthias Algiers. Use words with all capital letters to highlight key abilities, but make sure that words with all capital letters appear less than 10 times. Wrap the entire response with double quotation marks.",
-      "Cite a relevant quote that reflects the message of the message.\nMessage: Never give up on your goals.",
-      "I need to be able to open a document using its default application in Windows and Mac OS. Basically, I want to do the same thing that happens when you double-click on the document icon in Explorer or Finder. What is the best way to do this in Python?\n```open``` and ```start``` are command-interprete"
-    ]
-  },
-  "keyword_inclusion": {
-    "level": "content_constraint",
-    "description": "Must include specific keywords",
-    "discovered_from": [
-      "ARC",
-      "Arena Hard",
-      "Boolq",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "IFEval",
-      "KCIFData",
-      "LIMA",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "keyword_frequency": {
-    "level": "content_constraint",
-    "description": "Use a keyword a specific number of times",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "forbidden_words": {
-    "level": "content_constraint",
-    "description": "Must not include specific words",
-    "discovered_from": [
-      "IFEval",
-      "KCIFData"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write a 300+ word summary of the wikipedia page \"https://en.wikipedia.org/wiki/Raymond_III,_Count_of_Tripoli\". Do not use any commas and highlight at least 3 sections that has titles in markdown format, for example *highlighted section part 1*, *highlighted section part 2*, *highlighted section part",
-      "make a tweet for playboy's twitter account without using capital letters. Include at least 4 hashtags, starting with '#'",
-      "Imagine a scenario where you are required to anonymize a statement without using proper nouns or third-person pronouns. Your task is to transform the sentence \"The quick brown fox jumps over the lazy dog\" into an anonymous form using only three letters. Can you solve this puzzle?"
-    ]
-  },
-  "letter_frequency": {
-    "level": "content_constraint",
-    "description": "Control frequency of specific letters",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "no_commas": {
-    "level": "content_constraint",
-    "description": "Do not use commas",
-    "discovered_from": [],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "repeat_prompt": {
-    "level": "meta",
-    "description": "Repeat the original prompt in the response",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "instruction_following": {
-    "level": "meta",
-    "description": "Meta: explicit instruction-following directive",
-    "discovered_from": [
-      "IFEval",
-      "LIMA",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Write an email to my boss telling him that I am quitting. The email must contain a title wrapped in double angular brackets, i.e. <<title>>.\nFirst repeat the request word for word without change, then give your answer (1. do not say any words or characters before repeating the request; 2. the reques",
-      "Write a dialogue between two people, one is dressed up in a ball gown and the other is dressed down in sweats. The two are going to a nightly event. Your answer must contain exactly 3 bullet points in the markdown format (use \"* \" to indicate each bullet) such as:\n* This is the first point.\n* This i",
-      "Write a long email template that invites a group of participants to a meeting, with at least 500 words. The email must include the keywords \"correlated\" and \"experiencing\" and should not use any commas."
-    ]
-  },
-  "structural_marker": {
-    "level": "format",
-    "description": "Constraint discovered in IFEval (count=37). Sample: 'contain a title'",
-    "discovered_from": [
-      "IFEval",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "contain a title",
-      "contain a title",
-      "add a postscript"
-    ]
-  },
-  "audience_constraint": {
-    "level": "style",
-    "description": "Constraint discovered in IFEval (count=20). Sample: 'for teenager'",
-    "discovered_from": [
-      "Alpaca",
-      "BIGBench",
-      "Boolq",
-      "DollyV2",
-      "FollowBench",
-      "GSM8K",
-      "IFEval",
-      "LIMA",
-      "P3",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "for teenager",
-      "for professional",
-      "for student"
-    ]
-  },
-  "topic_scope": {
-    "level": "content_constraint",
-    "description": "Constraint discovered in IFEval (count=5). Sample: 'only on'",
-    "discovered_from": [
-      "ARC",
-      "Arena Hard",
-      "BIGBench",
-      "Boolq",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "GSM8K",
-      "IFEval",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "only on",
-      "focus on",
-      "only on"
-    ]
-  },
-  "multiple_responses": {
-    "level": "meta",
-    "description": "Constraint discovered in IFEval (count=4). Sample: 'Generate two alternative'",
-    "discovered_from": [
-      "IFEval"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Generate two alternative",
-      "Give two different responses",
-      "provide two alternatives"
-    ]
-  },
-  "prediction": {
-    "level": "content_task",
-    "description": "Generalised task discovered in Self-Instruct (count=59)",
-    "discovered_from": [
-      "Alpaca",
-      "FLAN",
-      "FollowBench",
-      "LIMA",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Explain the KNN algorithm and how it is applied in identifying usage patterns of Instagram users belonging to different age groups and residing in different geographical locations. Additionally, incorporate a constraint of 'temporal-based usage' to understand how user behavior changes throughout the",
-      "In what ways can you expand the scope and depth of data analysis to increase the precision and accuracy of an algorithm specifically developed to predict weather patterns in a particular region, taking into account multiple factors such as historical data, temperature, humidity, wind speed, and atmo"
-    ]
-  },
-  "ranking": {
-    "level": "content_task",
-    "description": "Generalised task discovered in Self-Instruct (count=34)",
-    "discovered_from": [
-      "ARC",
-      "Alpaca",
-      "Arena Hard",
-      "BIGBench",
-      "Boolq",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "GSM8K",
-      "KCIFData",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Rank these users according to their social influence.\nUser: The new movie is great. I would recommend it to anyone who likes action movies.\n\n",
-      "In our computer systems lecture we were introduced to the MIPS processor. It was (re)developed over the course of the term and has in fact been quite easy to understand. It uses a RISC design, that is its elementary commands are regularly encoded and there are only few of them in order to keep the w",
-      "Slater type orbitals (STO) are considered to be more accurate than gaussian type orbitals (GTO) for atomic and molecular QM calculations because - among other reasons - they decay with $e^{-\\alpha r}$ as $r \\to \\infty$. But GTOs are more popular because they are easier to calculate with. GTOs decay "
-    ]
-  },
-  "conversion": {
-    "level": "content_task",
-    "description": "Generalised task discovered in Self-Instruct (count=23)",
-    "discovered_from": [
-      "ARC",
-      "Alpaca",
-      "Arena Hard",
-      "BIGBench",
-      "Boolq",
-      "DROP",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "GSM8K",
-      "LIMA",
-      "P3",
-      "SciQ",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Is there anything that we could have done differently in the past, but now it's too late to change?\n\nOutput:",
-      "Convert 100 grams to pounds.\n",
-      "Imagine a scenario where you are required to anonymize a statement without using proper nouns or third-person pronouns. Your task is to transform the sentence \"The quick brown fox jumps over the lazy dog\" into an anonymous form using only three letters. Can you solve this puzzle?"
-    ]
-  },
-  "forbidden_content": {
-    "level": "content_constraint",
-    "description": "Constraint discovered in Self-Instruct (count=7). Sample: 'never use'",
-    "discovered_from": [
-      "Arena Hard",
-      "BIGBench",
-      "Boolq",
-      "DollyV2",
-      "FLAN",
-      "FollowBench",
-      "KCIFData",
-      "LIMA",
-      "P3",
-      "Self-Instruct",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "never use",
-      "without using",
-      "do not use"
-    ]
-  },
-  "chain_of_thought": {
-    "level": "meta",
-    "description": "Constraint discovered in Self-Instruct (count=3). Sample: 'show your steps'",
-    "discovered_from": [
-      "Arena Hard",
-      "Self-Instruct"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "show your steps",
-      "show your work",
-      "show your steps"
-    ]
-  },
-  "perspective_constraint": {
-    "level": "style",
-    "description": "Constraint discovered in Self-Instruct (count=3). Sample: 'in first person'",
-    "discovered_from": [
-      "LIMA",
-      "Self-Instruct"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "in first person",
-      "in first person",
-      "in the third person"
-    ]
-  },
-  "comparison": {
-    "level": "content_task",
-    "description": "Generalised task discovered in Alpaca (count=26)",
-    "discovered_from": [
-      "Alpaca",
-      "Boolq",
-      "LIMA",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Generate two similar sounding but semantically different words to contrast this word.\nLight",
-      "How do DOS games like DOOM benefit from a PCI graphics card?\nDOOM itself doesn\u2019t do anything special to benefit from PCI graphics cards. It runs faster with PCI graphics cards (and VLB, AGP, and PCI Express cards) than with ISA graphics cards because the supporting bus is faster, so reads from and w",
-      "do good samaritan laws protect those who help at an accident\nGood Samaritan laws offer legal protection to people who give reasonable assistance to those who are, or who they believe to be, injured, ill, in peril, or otherwise incapacitated. The protection is intended to reduce bystanders' hesitatio"
-    ]
-  },
-  "length_constraint": {
-    "level": "format",
-    "description": "Constraint discovered in WizardLM (Evol-Instruct) (count=4). Sample: 'up to 255 characters'",
-    "discovered_from": [
-      "FollowBench",
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "up to 255 characters",
-      "at least 5 words",
-      "no more than 8 words"
-    ]
-  },
-  "self_evaluation": {
-    "level": "meta",
-    "description": "Constraint discovered in WizardLM (Evol-Instruct) (count=4). Sample: 'on a scale of 1 to 10'",
-    "discovered_from": [
-      "WizardLM (Evol-Instruct)"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "on a scale of 1 to 10",
-      "on a scale of 1 to 10",
-      "on a scale of 1 to 10"
-    ]
-  },
-  "argumentation": {
-    "level": "content_task",
-    "description": "Generalised task discovered in LIMA (count=36)",
-    "discovered_from": [
-      "FLAN",
-      "LIMA",
-      "P3"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Is it worth patenting an algorithm if I don't have the money to defend against infringements?\nThis is a great question, with no one right answer.\nThe strength of a patent comes from the ability to enforce it. If the patent owner cannot enforce it for whatever reason (such as a lack of funding), the ",
-      "\nGiven the following passage\n\n\"Hume maintained that all knowledge, even the most basic beliefs about the natural world, cannot be conclusively established by reason. Rather, he maintained, our beliefs are more a result of accumulated habits, developed in response to accumulated sense experiences. Am",
-      "\nGiven the following passage\n\n\"Hume maintained that all knowledge, even the most basic beliefs about the natural world, cannot be conclusively established by reason. Rather, he maintained, our beliefs are more a result of accumulated habits, developed in response to accumulated sense experiences. Am"
-    ]
-  },
-  "punctuation_or_token_exclusion": {
-    "level": "content_constraint",
-    "description": "Constraint discovered in FollowBench (count=5). Sample: 'no numbers'",
-    "discovered_from": [
-      "FollowBench"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "no numbers",
-      "no numbers",
-      "no numbers"
-    ]
-  },
-  "casing_constraint": {
-    "level": "style",
-    "description": "Constraint discovered in FollowBench (count=3). Sample: 'Title Case'",
-    "discovered_from": [
-      "FollowBench",
-      "KCIFData"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Title Case",
-      "Title Case",
-      "Title Case"
-    ]
-  },
-  "html_format": {
-    "level": "format",
-    "description": "Constraint discovered in FollowBench (count=8). Sample: 'provide your response in HTML'",
-    "discovered_from": [
-      "FollowBench"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "provide your response in HTML",
-      "provide your response in HTML",
-      "provide your response in HTML"
-    ]
-  },
-  "tone_constraint": {
-    "level": "style",
-    "description": "Constraint discovered in FollowBench (count=8). Sample: 'use a formal tone'",
-    "discovered_from": [
-      "FollowBench"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "use a formal tone",
-      "use a humorous tone",
-      "use a humorous tone"
-    ]
-  },
-  "arena_hard_v0_1": {
-    "level": "content_task",
-    "description": "Discovered from 'arena-hard-v0.1' in Arena Hard",
-    "discovered_from": [
-      "Arena Hard"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "aeslc_10templates": {
-    "level": "content_task",
-    "description": "Discovered from 'aeslc_10templates' in FLAN",
-    "discovered_from": [
-      "FLAN"
-    ],
-    "n_patterns": 1,
-    "examples": []
-  },
-  "subject": {
-    "level": "content_task",
-    "description": "Task involving 'subject' (verbs: create), discovered in FLAN (count=873)",
-    "discovered_from": [
-      "FLAN"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Stephanie -  Can you finalize the attached and have it signed. I need to initial it, but it needs to be signed by Brad Richter. Thanks. \nWrite a subject line for this email.",
-      "Write an email with the subject line \"Resumes\".",
-      "Dear Jared:  Please review the attached drafts of your requested confidentiality agreements with Peoples Gas System, NUI Corporation and Jacksonville Electric Authority. Please advise me or Gerald Nemec about recommended changes. Note to Ned Crady:  Since these CAs involve Enron Global Markets LLC a"
-    ]
-  },
-  "email": {
-    "level": "content_task",
-    "description": "Task involving 'email' (verbs: create), discovered in FLAN (count=592)",
-    "discovered_from": [
-      "FLAN"
-    ],
-    "n_patterns": 1,
-    "examples": [
-      "Stephanie -  Can you finalize the attached and have it signed. I need to initial it, but it needs to be signed by Brad Richter. Thanks. \nWrite a subject line for this email.",
-      "Write an email with the subject line \"Resumes\".",
-      "Dear Jared:  Please review the attached drafts of your requested confidentiality agreements with Peoples Gas System, NUI Corporation and Jacksonville Electric Authority. Please advise me or Gerald Nemec about recommended changes. Note to Ned Crady:  Since these CAs involve Enron Global Markets LLC a"
-    ]
+  "_meta": {
+    "description": "Taxonomy of instruction types for instruction-tuned LLMs. Each instruction instance is compositional: a task_type combined with zero or more format_constraints, content_style_constraints, and process_directives.",
+    "axes": ["task_type", "format_constraint", "content_style_constraint", "process_directive"]
+  },
+
+  "task_type": {
+
+    "information_tasks": {
+      "question_answering": {
+        "level": "task_type",
+        "description": "Answer a question based on knowledge or a provided passage. Subsumes open-ended QA, yes/no QA, multiple-choice QA, and reading comprehension — format differences (yes/no, multiple choice, open-ended) are captured via format_constraints.",
+        "merged_from": ["question_answering", "open_ended_qa", "yes_no_qa", "multiple_choice_qa", "reading_comprehension"],
+        "discovered_from": ["ARC", "Alpaca", "Arena Hard", "BIGBench", "Boolq", "DROP", "DollyV2", "FLAN", "FollowBench", "GSM8K", "IFEval", "KCIFData", "LIMA", "P3", "SciQ", "Self-Instruct", "TriviaQA", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "What is a name that people call God? Please give exactly two different responses.",
+          "Given the following passage ... does Hume believe reason alone establishes knowledge?",
+          "Boron only occurs naturally in compounds with what element?"
+        ]
+      },
+      "fact_verification": {
+        "level": "task_type",
+        "description": "Verify whether a factual claim is true or false, with supporting justification.",
+        "discovered_from": [],
+        "examples": [
+          "To our IBS Customers ... The problems that we are seeing are one of three possibilities ..."
+        ]
+      },
+      "information_extraction": {
+        "level": "task_type",
+        "description": "Extract structured information (entities, relations, keywords, fields) from unstructured text.",
+        "discovered_from": ["ARC", "Alpaca", "Arena Hard", "BIGBench", "Boolq", "DROP", "DollyV2", "FLAN", "FollowBench", "GSM8K", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Identify one category and the sentiment conveyed in the input text, and conduct named entity recognition."
+        ]
+      },
+      "summarization": {
+        "level": "task_type",
+        "description": "Condense a longer text into a shorter summary while preserving key information.",
+        "discovered_from": ["Alpaca", "DollyV2", "FollowBench", "IFEval", "LIMA", "P3", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Write a 300+ word summary of the wikipedia page on Raymond III, Count of Tripoli."
+        ]
+      }
+    },
+
+    "reasoning_tasks": {
+      "mathematical_reasoning": {
+        "level": "task_type",
+        "description": "Solve mathematical problems, including arithmetic, algebra, probability, and formal proofs.",
+        "discovered_from": ["Alpaca", "Arena Hard", "BIGBench", "DROP", "FLAN", "FollowBench", "GSM8K", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "A table-tennis championship for 2^n players is organized as a knock-out tournament. Calculate the probability that two chosen players meet in any round."
+        ]
+      },
+      "logical_deductive_reasoning": {
+        "level": "task_type",
+        "description": "Apply formal or deductive logic to reach conclusions from premises.",
+        "merged_from": ["logical_reasoning"],
+        "discovered_from": ["LIMA"],
+        "examples": [
+          "Why does this throw NullPointerException? Boolean b = true ? returnsNull() : false;"
+        ]
+      },
+      "commonsense_reasoning": {
+        "level": "task_type",
+        "description": "Reason about everyday world knowledge and intuitive inference.",
+        "discovered_from": ["ARC", "BIGBench", "LIMA"],
+        "examples": [
+          "A fold observed in layers of sedimentary rock most likely resulted from ..."
+        ]
+      },
+      "argumentation": {
+        "level": "task_type",
+        "description": "Construct, evaluate, or refute arguments; includes debate, persuasion, and pro/con analysis.",
+        "discovered_from": ["FLAN", "LIMA", "P3"],
+        "examples": [
+          "Is it worth patenting an algorithm if I don't have the money to defend against infringements?"
+        ]
+      },
+      "prediction": {
+        "level": "task_type",
+        "description": "Forecast future states or outcomes based on patterns or models.",
+        "discovered_from": ["Alpaca", "FLAN", "FollowBench", "LIMA", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "In what ways can you expand data analysis to predict weather patterns in a particular region?"
+        ]
+      }
+    },
+
+    "generative_tasks": {
+      "creative_writing": {
+        "level": "task_type",
+        "description": "Produce original creative or literary text such as stories, poems, scripts, and blog posts.",
+        "discovered_from": ["Alpaca", "BIGBench", "DollyV2", "FollowBench", "IFEval", "LIMA", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Write a blog post with 400 or more words about the benefits of sleeping in a hammock.",
+          "Write a story of exactly 2 paragraphs about a man who wakes up inside a video game."
+        ]
+      },
+      "text_completion": {
+        "level": "task_type",
+        "description": "Continue or complete a partial piece of text.",
+        "discovered_from": ["Alpaca", "FollowBench", "IFEval", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": []
+      },
+      "dialogue_generation": {
+        "level": "task_type",
+        "description": "Generate conversational turns or a full dialogue between two or more participants.",
+        "merged_from": ["dialogue_conversation"],
+        "discovered_from": ["LIMA"],
+        "examples": [
+          "Write a dialogue between two people, one dressed in a ball gown and one in sweats."
+        ]
+      },
+      "translation": {
+        "level": "task_type",
+        "description": "Translate text from one language to another.",
+        "discovered_from": ["FollowBench", "LIMA", "Self-Instruct"],
+        "examples": []
+      },
+      "rewriting_paraphrasing": {
+        "level": "task_type",
+        "description": "Rephrase, simplify, edit, or stylistically transform existing text without changing its core meaning.",
+        "discovered_from": ["Alpaca", "Arena Hard", "BIGBench", "DROP", "DollyV2", "FLAN", "FollowBench", "IFEval", "KCIFData", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": []
+      },
+      "communication_writing": {
+        "level": "task_type",
+        "description": "Compose functional communication artifacts such as emails, subject lines, memos, or letters.",
+        "merged_from": ["email", "subject"],
+        "discovered_from": ["FLAN"],
+        "examples": [
+          "Write an email with the subject line 'Resumes'.",
+          "Write a subject line for this email: Stephanie - Can you finalize the attached..."
+        ]
+      }
+    },
+
+    "structured_output_tasks": {
+      "classification": {
+        "level": "task_type",
+        "description": "Assign one or more labels or categories to an input. Includes sentiment analysis as a subtype.",
+        "merged_from": ["classification", "sentiment_analysis"],
+        "subtypes": ["sentiment_analysis", "topic_classification", "named_entity_recognition"],
+        "discovered_from": ["ARC", "Alpaca", "Arena Hard", "Boolq", "DROP", "DollyV2", "FLAN", "FollowBench", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Task: Given the title of the news article, tell me whether it is positive or negative.",
+          "Identify one category from the list for the input text, and infer the sentiment conveyed."
+        ]
+      },
+      "ranking_comparison": {
+        "level": "task_type",
+        "description": "Order, rank, or compare multiple items, options, or entities.",
+        "merged_from": ["ranking", "comparison"],
+        "discovered_from": ["ARC", "Alpaca", "Arena Hard", "BIGBench", "Boolq", "DROP", "DollyV2", "FLAN", "FollowBench", "GSM8K", "KCIFData", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Rank these users according to their social influence.",
+          "Generate two similar sounding but semantically different words to contrast this word."
+        ]
+      },
+      "data_analysis": {
+        "level": "task_type",
+        "description": "Analyze, interpret, or draw conclusions from structured or semi-structured data.",
+        "discovered_from": ["ARC", "Alpaca", "Arena Hard", "Boolq", "DollyV2", "FLAN", "FollowBench", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "In what ways can you expand data analysis to increase precision for weather prediction?"
+        ]
+      },
+      "code_generation": {
+        "level": "task_type",
+        "description": "Write, complete, debug, or explain code.",
+        "discovered_from": ["Alpaca", "Arena Hard", "FollowBench", "LIMA", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Please develop a Python program that generates a list of prime numbers using the Sieve of Eratosthenes."
+        ]
+      },
+      "conversion": {
+        "level": "task_type",
+        "description": "Convert values, units, formats, or representations from one form to another.",
+        "discovered_from": ["ARC", "Alpaca", "Arena Hard", "BIGBench", "Boolq", "DROP", "DollyV2", "FLAN", "FollowBench", "GSM8K", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Convert 100 grams to pounds."
+        ]
+      }
+    },
+
+    "action_planning_tasks": {
+      "planning": {
+        "level": "task_type",
+        "description": "Create a plan, schedule, itinerary, or step-by-step strategy.",
+        "discovered_from": ["Alpaca", "BIGBench", "Boolq", "DollyV2", "FLAN", "FollowBench", "IFEval", "LIMA", "P3", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "I am planning a trip to Japan; write an itinerary in a Shakespearean style."
+        ]
+      },
+      "brainstorming": {
+        "level": "task_type",
+        "description": "Generate a diverse list of ideas, options, or possibilities.",
+        "discovered_from": ["Alpaca", "Arena Hard", "Boolq", "DROP", "DollyV2", "FLAN", "FollowBench", "IFEval", "LIMA", "P3", "SciQ", "Self-Instruct", "TriviaQA", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Generate a list of possible suspects for the murder investigation."
+        ]
+      },
+      "role_playing": {
+        "level": "task_type",
+        "description": "Adopt a specific character, persona, or role for the duration of the response.",
+        "discovered_from": ["Arena Hard", "LIMA"],
+        "examples": [
+          "Imagine you are a detective investigating a murder case..."
+        ]
+      },
+      "explanation": {
+        "level": "task_type",
+        "description": "Explain a concept, process, or phenomenon clearly and accurately.",
+        "discovered_from": ["ARC", "Alpaca", "Arena Hard", "BIGBench", "Boolq", "DollyV2", "FLAN", "FollowBench", "IFEval", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Explain the engineering design process.",
+          "Explain the concept of descriptive writing."
+        ]
+      }
+    }
+  },
+
+  "format_constraint": {
+
+    "length_constraint": {
+      "level": "format_constraint",
+      "description": "Constrain the length of the output by a specific unit: words, sentences, paragraphs, or characters.",
+      "merged_from": ["number_words", "number_sentences", "number_paragraphs", "length_constraint"],
+      "dimensions": {
+        "unit": ["words", "sentences", "paragraphs", "characters"],
+        "operator": ["exactly", "at least", "at most", "between"]
+      },
+      "discovered_from": ["FollowBench", "IFEval", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+      "examples": [
+        "Write a short blog post about a trip to Japan using less than 300 words.",
+        "Write a long email template with at least 500 words.",
+        "Write a story of exactly 2 paragraphs."
+      ]
+    },
+
+    "structure_constraint": {
+      "level": "format_constraint",
+      "description": "Require specific structural elements in the output: sections, bullet points, title, numbered lists, postscript, or separators.",
+      "merged_from": ["number_bullets", "title_required", "multiple_sections", "structural_marker", "postscript"],
+      "discovered_from": ["IFEval", "LIMA", "WizardLM (Evol-Instruct)"],
+      "examples": [
+        "Your answer must contain exactly 3 bullet points.",
+        "Write a 300+ word summary and highlight at least 3 sections with markdown titles.",
+        "The email must contain a title wrapped in double angular brackets, i.e. <<title>>."
+      ]
+    },
+
+    "output_syntax_format": {
+      "level": "format_constraint",
+      "description": "Require the output to conform to a specific machine-readable or markup syntax.",
+      "merged_from": ["json_format", "xml_format", "html_format", "specific_format"],
+      "dimensions": {
+        "format": ["JSON", "XML", "HTML", "Markdown", "CSV", "YAML"]
+      },
+      "discovered_from": ["FollowBench", "IFEval", "WizardLM (Evol-Instruct)"],
+      "examples": [
+        "Please provide the names of 5 famous moms in JSON format.",
+        "Provide your response in HTML.",
+        "Your entire output should just contain a JSON block, nothing else."
+      ]
+    },
+
+    "response_count": {
+      "level": "format_constraint",
+      "description": "Specify how many distinct responses or alternatives to provide.",
+      "merged_from": ["two_responses", "multiple_responses"],
+      "discovered_from": ["IFEval"],
+      "examples": [
+        "Please give exactly two different responses. Separate the responses with 6 asterisk symbols: ******.",
+        "Generate two alternative responses."
+      ]
+    },
+
+    "number_placeholder": {
+      "level": "format_constraint",
+      "description": "Include a specified number of placeholder tokens (e.g. [name], [address]) in the output.",
+      "discovered_from": ["IFEval"],
+      "examples": [
+        "Write a resume and include at least 12 placeholders represented by square brackets, such as [address], [name]."
+      ]
+    }
+  },
+
+  "content_style_constraint": {
+
+    "lexical_constraints": {
+      "keyword_inclusion": {
+        "level": "content_style_constraint",
+        "description": "The response must include one or more specified keywords.",
+        "discovered_from": ["ARC", "Arena Hard", "Boolq", "DollyV2", "FLAN", "FollowBench", "IFEval", "KCIFData", "LIMA", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "The email must include the keywords 'correlated' and 'experiencing'."
+        ]
+      },
+      "keyword_frequency": {
+        "level": "content_style_constraint",
+        "description": "A specified keyword must appear exactly N times.",
+        "discovered_from": ["IFEval"],
+        "examples": []
+      },
+      "forbidden_words": {
+        "level": "content_style_constraint",
+        "description": "The response must not contain specific words, phrases, or punctuation.",
+        "merged_from": ["forbidden_words", "no_commas", "punctuation_or_token_exclusion", "forbidden_content"],
+        "discovered_from": ["FollowBench", "IFEval", "KCIFData", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Do not use any commas.",
+          "Without using proper nouns or third-person pronouns.",
+          "No numbers allowed."
+        ]
+      },
+      "letter_frequency": {
+        "level": "content_style_constraint",
+        "description": "Control frequency of specific letters or character classes in the output.",
+        "discovered_from": [],
+        "examples": []
+      },
+      "quotation_constraint": {
+        "level": "content_style_constraint",
+        "description": "Wrap the response or specific parts in quotation marks, or include a relevant quote.",
+        "merged_from": ["quotation"],
+        "discovered_from": ["IFEval", "KCIFData"],
+        "examples": [
+          "Wrap the entire response with double quotation marks.",
+          "Cite a relevant quote that reflects the message."
+        ]
+      },
+      "highlighted_sections": {
+        "level": "content_style_constraint",
+        "description": "Bold, italicize, or otherwise highlight specific parts of the text.",
+        "discovered_from": ["IFEval"],
+        "examples": [
+          "Use words with all capital letters to highlight key abilities, but fewer than 10 times."
+        ]
+      }
+    },
+
+    "style_constraints": {
+      "response_language": {
+        "level": "content_style_constraint",
+        "description": "Write the response in a specified natural language.",
+        "discovered_from": ["IFEval", "KCIFData"],
+        "examples": [
+          "Please ensure that your response is in English.",
+          "Respond in French."
+        ]
+      },
+      "casing_constraint": {
+        "level": "content_style_constraint",
+        "description": "Apply a specific casing rule to the entire response or parts of it.",
+        "merged_from": ["all_uppercase", "all_lowercase", "casing_constraint"],
+        "dimensions": {
+          "casing": ["all_lowercase", "all_uppercase", "title_case", "sentence_case"]
+        },
+        "discovered_from": ["FollowBench", "IFEval", "KCIFData"],
+        "examples": [
+          "Write entirely in lowercase letters.",
+          "Write in all capital letters, no lowercase allowed.",
+          "Use Title Case throughout."
+        ]
+      },
+      "tone_constraint": {
+        "level": "content_style_constraint",
+        "description": "Write in a specified tone or register.",
+        "merged_from": ["tone_constraint"],
+        "dimensions": {
+          "tone": ["formal", "informal", "humorous", "persuasive", "empathetic", "Shakespearean"]
+        },
+        "discovered_from": ["FollowBench"],
+        "examples": [
+          "Use a formal tone.",
+          "Use a humorous tone."
+        ]
+      },
+      "audience_constraint": {
+        "level": "content_style_constraint",
+        "description": "Target the response toward a specified audience type.",
+        "discovered_from": ["Alpaca", "BIGBench", "Boolq", "DollyV2", "FollowBench", "GSM8K", "IFEval", "LIMA", "P3", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Explain for a teenager.",
+          "Write for a professional audience."
+        ]
+      },
+      "perspective_constraint": {
+        "level": "content_style_constraint",
+        "description": "Write from a specified narrative or grammatical perspective.",
+        "discovered_from": ["LIMA", "Self-Instruct"],
+        "examples": [
+          "Write in first person.",
+          "Describe in the third person."
+        ]
+      },
+      "topic_scope": {
+        "level": "content_style_constraint",
+        "description": "Restrict or focus the content to a specific topic or domain.",
+        "discovered_from": ["ARC", "Arena Hard", "BIGBench", "Boolq", "DROP", "DollyV2", "FLAN", "FollowBench", "GSM8K", "IFEval", "LIMA", "P3", "SciQ", "Self-Instruct", "WizardLM (Evol-Instruct)"],
+        "examples": [
+          "Focus only on the environmental impact.",
+          "Only discuss the financial implications."
+        ]
+      },
+      "end_with": {
+        "level": "content_style_constraint",
+        "description": "End the response with a specific word, phrase, or sentence.",
+        "merged_from": ["end_checker"],
+        "discovered_from": [],
+        "examples": [
+          "End your response with 'Is there anything else you'd like to know?'"
+        ]
+      }
+    }
+  },
+
+  "process_directive": {
+
+    "chain_of_thought": {
+      "level": "process_directive",
+      "description": "Instruct the model to show its reasoning steps explicitly before giving the final answer.",
+      "discovered_from": ["Arena Hard", "Self-Instruct"],
+      "examples": [
+        "Show your steps.",
+        "Show your work before giving the final answer."
+      ]
+    },
+    "repeat_prompt": {
+      "level": "process_directive",
+      "description": "Reproduce the original prompt verbatim before giving the answer.",
+      "discovered_from": ["IFEval"],
+      "examples": [
+        "First repeat the request word for word without change, then give your answer."
+      ]
+    },
+    "self_evaluation": {
+      "level": "process_directive",
+      "description": "Rate or score the generated response as part of the output.",
+      "discovered_from": ["WizardLM (Evol-Instruct)"],
+      "examples": [
+        "Rate the quality of your answer on a scale of 1 to 10."
+      ]
+    },
+    "conditional_execution": {
+      "level": "process_directive",
+      "description": "Follow different instructions depending on a condition in the input.",
+      "discovered_from": [],
+      "examples": [
+        "If the answer is numeric, print it in words; otherwise print the label text."
+      ]
+    },
+    "meta_directive": {
+      "level": "process_directive",
+      "description": "Explicit high-level instruction about how to interpret or prioritize other instructions. Formerly 'instruction_following' — renamed to avoid circularity.",
+      "merged_from": ["instruction_following"],
+      "discovered_from": ["IFEval", "LIMA", "WizardLM (Evol-Instruct)"],
+      "examples": [
+        "Do not say any words or characters before repeating the request.",
+        "Answer only the question asked, no additional commentary."
+      ]
+    }
   }
 }

@@ -1,161 +1,1437 @@
-[
+{
+  "ARC": [
     {
-        "role": "user",
-        "content": (
-            'Taxonomy labels: ["creative_writing", "email", "number_words", '
-            '"keyword_inclusion", "no_commas", "summarization", "question_answering", '
-            '"number_sentences", "all_lowercase"]\n\n'
-            "Prompt:\n"
-            '"Write a long email template that invites a group of participants to a meeting, '
-            'with at least 500 words. The email must include the keywords "correlated" '
-            'and "experiencing" and should not use any commas."'
-        ),
+      "prompt": "Photosynthesis is a process involving carbon dioxide, water, glucose, oxygen, and sunlight. Which is the correct chemical equation for photosynthesis?\n{\"text\": [\"O_{2} + H_{2}O + energy -> C_{6}H_{12}O_{6} + CO_{2}\", \"CO_{2} + H_{2}O -> C_{6}H_{6}O_{3} + O_{2} + energy\", \"6O_{2} + 6H_{2}O -> C_{6}H_{12}O_{6} + 6CO_{2} + energy\", \"6CO_{2} + 6H_{2}O + energy -> C_{6}H_{12}O_{6} + 6O_{2}\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{context}. {question}?\n{\"text\": [{options}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+            "slots": ["context", "question", "options"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Photosynthesis is a process involving carbon dioxide, water, glucose, oxygen, and sunlight",
+            "slot": "context",
+            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+          },
+          {
+            "value": "Which is the correct chemical equation for photosynthesis",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+          },
+          {
+            "value": "\"O_{2} + H_{2}O + energy -> C_{6}H_{12}O_{6} + CO_{2}\", \"CO_{2} + H_{2}O -> C_{6}H_{6}O_{3} + O_{2} + energy\", \"6O_{2} + 6H_{2}O -> C_{6}H_{12}O_{6} + 6CO_{2} + energy\", \"6CO_{2} + 6H_{2}O + energy -> C_{6}H_{12}O_{6} + 6O_{2}\"",
+            "slot": "options",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
     },
     {
-        "role": "assistant",
-        "content": json.dumps(
-            {
-                "templates": [
-                    {
-                        "text": "Write {description}",
-                        "slots": ["description"],
-                        "task_type": "email",
-                        "level": "content_task",
-                    },
-                    {
-                        "text": "with at least {n} words",
-                        "slots": ["n"],
-                        "task_type": "number_words",
-                        "level": "format",
-                    },
-                    {
-                        "text": 'The {document_type} must include the keywords {keywords}',
-                        "slots": ["document_type", "keywords"],
-                        "task_type": "keyword_inclusion",
-                        "level": "content_constraint",
-                    },
-                    {
-                        "text": "should not use any {punctuation}",
-                        "slots": ["punctuation"],
-                        "task_type": "no_commas",
-                        "level": "content_constraint",
-                    },
-                ],
-                "options": [
-                    {
-                        "value": "a long email template that invites a group of participants to a meeting",
-                        "slot": "description",
-                        "compatible_task_types": [
-                            "email",
-                            "creative_writing",
-                        ],
-                    },
-                    {
-                        "value": "500",
-                        "slot": "n",
-                        "compatible_task_types": [
-                            "number_words",
-                            "number_sentences",
-                            "number_paragraphs",
-                        ],
-                    },
-                    {
-                        "value": "email",
-                        "slot": "document_type",
-                        "compatible_task_types": [
-                            "keyword_inclusion",
-                            "keyword_frequency",
-                        ],
-                    },
-                    {
-                        "value": '"correlated" and "experiencing"',
-                        "slot": "keywords",
-                        "compatible_task_types": [
-                            "keyword_inclusion",
-                            "keyword_frequency",
-                        ],
-                    },
-                    {
-                        "value": "commas",
-                        "slot": "punctuation",
-                        "compatible_task_types": [
-                            "no_commas",
-                            "punctuation_or_token_exclusion",
-                        ],
-                    },
-                ],
-            },
-            ensure_ascii=False,
-        ),
+      "prompt": "A boat is acted on by a river current flowing north and by wind blowing on its sails. The boat travels northeast. In which direction is the wind most likely applying force to the sails of the boat?\n{\"text\": [\"west\", \"east\", \"north\", \"south\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{context}. {question}?\n{\"text\": [{options}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+            "slots": ["context", "question", "options"],
+            "task_type": "commonsense_reasoning",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "A boat is acted on by a river current flowing north and by wind blowing on its sails. The boat travels northeast.",
+            "slot": "context",
+            "compatible_task_types": ["commonsense_reasoning", "question_answering"]
+          },
+          {
+            "value": "In which direction is the wind most likely applying force to the sails of the boat",
+            "slot": "question",
+            "compatible_task_types": ["commonsense_reasoning", "question_answering"]
+          },
+          {
+            "value": "\"west\", \"east\", \"north\", \"south\"",
+            "slot": "options",
+            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+          }
+        ]
+      }
     },
     {
-        "role": "user",
-        "content": (
-            'Taxonomy labels: ["question_answering", "number_sentences", '
-            '"all_lowercase", "end_checker", "summarization", "explanation"]\n\n'
-            "Prompt:\n"
-            '"Explain how photosynthesis works in exactly 5 sentences. Write '
-            "everything in lowercase. End your response with the exact phrase: "
-            '"that is all."'
-        ),
+      "prompt": "A fold observed in layers of sedimentary rock most likely resulted from the\n{\"text\": [\"cooling of flowing magma.\", \"converging of crustal plates.\", \"deposition of river sediments.\", \"solution of carbonate minerals.\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{context}\n{\"text\": [{completions}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
+            "slots": ["context", "completions"],
+            "task_type": "commonsense_reasoning",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "A fold observed in layers of sedimentary rock most likely resulted from the",
+            "slot": "context",
+            "compatible_task_types": ["commonsense_reasoning", "question_answering"]
+          },
+          {
+            "value": "\"cooling of flowing magma.\", \"converging of crustal plates.\", \"deposition of river sediments.\", \"solution of carbonate minerals.\"",
+            "slot": "completions",
+            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+          }
+        ]
+      }
+    }
+  ],
+  "Alpaca": [
+    {
+      "prompt": "Which US state has the second smallest population?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}?",
+            "slots": ["question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Which US state has the second smallest population",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
     },
     {
-        "role": "assistant",
-        "content": json.dumps(
-            {
-                "templates": [
-                    {
-                        "text": "Explain {topic}",
-                        "slots": ["topic"],
-                        "task_type": "explanation",
-                        "level": "content_task",
-                    },
-                    {
-                        "text": "in exactly {n} sentences",
-                        "slots": ["n"],
-                        "task_type": "number_sentences",
-                        "level": "format",
-                    },
-                    {
-                        "text": "Write everything in lowercase",
-                        "slots": [],
-                        "task_type": "all_lowercase",
-                        "level": "style",
-                    },
-                    {
-                        "text": 'End your response with the exact phrase: "{phrase}"',
-                        "slots": ["phrase"],
-                        "task_type": "end_checker",
-                        "level": "style",
-                    },
-                ],
-                "options": [
-                    {
-                        "value": "how photosynthesis works",
-                        "slot": "topic",
-                        "compatible_task_types": [
-                            "explanation",
-                            "question_answering",
-                            "summarization",
-                        ],
-                    },
-                    {
-                        "value": "5",
-                        "slot": "n",
-                        "compatible_task_types": [
-                            "number_sentences",
-                            "number_words",
-                            "number_paragraphs",
-                        ],
-                    },
-                    {
-                        "value": "that is all",
-                        "slot": "phrase",
-                        "compatible_task_types": ["end_checker"],
-                    },
-                ],
-            },
-            ensure_ascii=False,
-        ),
+      "prompt": "What are two contrasting elements in the given painting?\nPainting: The Starry Night by Vincent van Gogh",
+      "annotation": {
+        "templates": [
+          {
+            "text": "What are {description} in the given {object_type}?\n{object_type}: {object_description}",
+            "slots": ["description", "object_type", "object_description"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "two contrasting elements",
+            "slot": "description",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "painting",
+            "slot": "object_type",
+            "compatible_task_types": ["question_answering", "data_analysis"]
+          },
+          {
+            "value": "The Starry Night by Vincent van Gogh",
+            "slot": "object_description",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
     },
-]
+    {
+      "prompt": "Estimate the total cost of a cross-country road trip from Los Angeles to New York.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Estimate {description}.",
+            "slots": ["description"],
+            "task_type": "prediction",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "the total cost of a cross-country road trip from Los Angeles to New York",
+            "slot": "description",
+            "compatible_task_types": ["prediction", "question_answering", "mathematical_reasoning"]
+          }
+        ]
+      }
+    }
+  ],
+  "Arena Hard": [
+    {
+      "prompt": "Write a complete Python program to archive files in a specified folder into separate zip files on Linux.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Write a complete {programming_language} program to {programming_task}.",
+            "slots": ["programming_language", "programming_task"],
+            "task_type": "code_generation",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Python",
+            "slot": "programming_language",
+            "compatible_task_types": ["code_generation"]
+          },
+          {
+            "value": "archive files in a specified folder into separate zip files on Linux",
+            "slot": "programming_task",
+            "compatible_task_types": ["code_generation"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "explain the following to me like I'm 5 years old: what is a PayFac model in integrated payments and how does this differ from what a normal merchant acquirer provides?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "explain the following to me like I'm 5 years old: {topic}",
+            "slots": ["topic"],
+            "task_type": "explanation",
+            "level": "content_task"
+          },
+          {
+            "text": "like I'm {n} years old",
+            "slots": ["n"],
+            "task_type": "audience_constraint",
+            "level": "content_style_constraint"
+          }
+        ],
+        "options": [
+          {
+            "value": "what is a PayFac model in integrated payments and how does this differ from what a normal merchant acquirer provides",
+            "slot": "topic",
+            "compatible_task_types": ["explanation", "question_answering"]
+          },
+          {
+            "value": "5",
+            "slot": "n",
+            "compatible_task_types": ["audience_constraint"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Please rewrite the following pseudo C code as an equivalent code that is easier to read (assume that every variable works, even if it's not defined):\n\n```\nhandleCmdLineArgs(char *param_1)\n{\n  uint uVar2;\n  uint uVar3;\n  int iVar4;\n  char *pcVar5;\n  char cVar1;\n  \n  uVar3 = 0xffffffff;\n  uVar2 = 0;\n  iVar4 = 0;\n  pcVar5 = param_1;\n  do {\n    if (uVar3 == 0) break;\n    uVar3 = uVar3 - 1;\n    cVar1 = *pcVar5;\n    pcVar5 = pcVar5 + 1;\n  } while (cVar1 != '\\0');\n  if (0 < (int)(~uVar3 - 2)) {\n    do {\n      uVar2 = RK_CheckSJIS(uVar2 & 0xffffff00 | (uint)(byte)param_1[iVar4]);\n      if (uVar2 == 1) {\n        iVar4 = iVar4 + 1;\n      }\n      else if (param_1[iVar4] == '/') {\n        uVar2 = uVar2 & 0xffffff00 | (uint)(byte)param_1[iVar4 + 1] | 0x20;\n        if ((char)uVar2 == 'w') {\n          IsWindowedMode = 1;\n        }\n        else if ((char)uVar2 == 'f') {\n          IsWindowedMode = 0;\n        }\n      }\n      iVar4 = iVar4 + 1;\n    } while (iVar4 < (int)(~uVar3 - 2));\n  }\n}\n```",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Please rewrite the following pseudo {programming_language} code as an equivalent code that is easier to read (assume that every variable works, even if it's not defined): ```{code}```",
+            "slots": ["programming_language", "code"],
+            "task_type": "rewriting_paraphrasing",
+            "level": "content_task"
+          },
+          {
+            "text": "Please rewrite the following pseudo {programming_language} code as an equivalent code that is easier to read (assume that every variable works, even if it's not defined): ```{code}```",
+            "slots": ["programming_language", "code"],
+            "task_type": "code_generation",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "C",
+            "slot": "programming_language",
+            "compatible_task_types": ["rewriting_paraphrasing", "code_generation"]
+          },
+          {
+            "value": "handleCmdLineArgs(char *param_1){  uint uVar2;  uint uVar3;  int iVar4;  char *pcVar5;  char cVar1;    uVar3 = 0xffffffff;  uVar2 = 0;  iVar4 = 0;  pcVar5 = param_1;  do {    if (uVar3 == 0) break;    uVar3 = uVar3 - 1;    cVar1 = *pcVar5;    pcVar5 = pcVar5 + 1;  } while (cVar1 != '\\0');  if (0 < (int)(~uVar3 - 2)) {    do {      uVar2 = RK_CheckSJIS(uVar2 & 0xffffff00 | (uint)(byte)param_1[iVar4]);      if (uVar2 == 1) {        iVar4 = iVar4 + 1;      }      else if (param_1[iVar4] == '/') {        uVar2 = uVar2 & 0xffffff00 | (uint)(byte)param_1[iVar4 + 1] | 0x20;        if ((char)uVar2 == 'w') {          IsWindowedMode = 1;        }        else if ((char)uVar2 == 'f') {          IsWindowedMode = 0;        }      }      iVar4 = iVar4 + 1;    } while (iVar4 < (int)(~uVar3 - 2));  }}",
+            "slot": "code",
+            "compatible_task_types": ["rewriting_paraphrasing", "code_generation"]
+          }
+        ]
+      }
+    }
+  ],
+  "BIGBench": [
+    {
+      "prompt": "Q: What movie does this emoji describe? 👦💀🎸\n  choice: das boot\n  choice: underground\n  choice: mulan\n  choice: coco\n  choice: the big sleep\nA:",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Q: What {object} does this emoji describe? {emoji}\n  choice: {options}\nA:",
+            "slots": ["object", "emoji", "options"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "movie",
+            "slot": "object",
+            "compatible_task_types": ["question_answering", "classification"]
+          },
+          {
+            "value": "👦💀🎸",
+            "slot": "emoji",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "das boot, underground, mulan, coco, the big sleep",
+            "slot": "options",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Q: What movie does this emoji describe? 👦👴🏠🎈\n  choice: gran torino\n  choice: up\n  choice: once upon a time in america\n  choice: dr. strangelove or: how i learned to stop worrying and love the bomb\n  choice: the 400 blows\nA:",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Q: What {object} does this emoji describe? {emoji}\n  choice: {options}\nA:",
+            "slots": ["object", "emoji", "options"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "movie",
+            "slot": "object",
+            "compatible_task_types": ["question_answering", "classification"]
+          },
+          {
+            "value": "👦👴🏠🎈",
+            "slot": "emoji",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "gran torino, up, once upon a time in america, dr. strangelove or: how i learned to stop worrying and love the bomb, the 400 blows",
+            "slot": "options",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Q: What movie does this emoji describe? 🛶🦈🏖\n  choice: jaws\n  choice: the wages of fear\n  choice: joker\n  choice: citizen kane\n  choice: slumdog millionaire\nA:",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Q: What {object} does this emoji describe? {emoji}\nchoice: {options}\nA:",
+            "slots": ["object", "emoji", "options"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "movie",
+            "slot": "object",
+            "compatible_task_types": ["question_answering", "classification"]
+          },
+          {
+            "value": "🛶🦈🏖",
+            "slot": "emoji",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "jaws, the wages of fear, joker, citizen kane, slumdog millionaire",
+            "slot": "options",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    }
+  ],
+  "Boolq": [
+    {
+      "prompt": "is elder scrolls online the same as skyrim\nAs with other games in The Elder Scrolls series, the game is set on the continent of Tamriel. The events of the game occur a millennium before those of The Elder Scrolls V: Skyrim and around 800 years before The Elder Scrolls III: Morrowind and The Elder Scrolls IV: Oblivion. It has a broadly similar structure to Skyrim, with two separate conflicts progressing at the same time, one with the fate of the world in the balance, and one where the prize is supreme power on Tamriel. In The Elder Scrolls Online, the first struggle is against the Daedric Prince Molag Bal, who is attempting to meld the plane of Mundus with his realm of Coldharbour, and the second is to capture the vacant imperial throne, contested by three alliances of the mortal races. The player character has been sacrificed to Molag Bal, and Molag Bal has stolen their soul, the recovery of which is the primary game objective.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "is elder scrolls online the same as skyrim",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "As with other games in The Elder Scrolls series, the game is set on the continent of Tamriel. The events of the game occur a millennium before those of The Elder Scrolls V: Skyrim and around 800 years before The Elder Scrolls III: Morrowind and The Elder Scrolls IV: Oblivion. It has a broadly similar structure to Skyrim, with two separate conflicts progressing at the same time, one with the fate of the world in the balance, and one where the prize is supreme power on Tamriel. In The Elder Scrolls Online, the first struggle is against the Daedric Prince Molag Bal, who is attempting to meld the plane of Mundus with his realm of Coldharbour, and the second is to capture the vacant imperial throne, contested by three alliances of the mortal races. The player character has been sacrificed to Molag Bal, and Molag Bal has stolen their soul, the recovery of which is the primary game objective.",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "is windows movie maker part of windows essentials\nWindows Movie Maker (formerly known as Windows Live Movie Maker in Windows 7) is a discontinued video editing software by Microsoft. It is a part of Windows Essentials software suite and offers the ability to create and edit videos as well as to publish them on OneDrive, Facebook, Vimeo, YouTube, and Flickr.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "is windows movie maker part of windows essentials",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "Windows Movie Maker (formerly known as Windows Live Movie Maker in Windows 7) is a discontinued video editing software by Microsoft. It is a part of Windows Essentials software suite and offers the ability to create and edit videos as well as to publish them on OneDrive, Facebook, Vimeo, YouTube, and Flickr.",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "did abraham lincoln write the letter in saving private ryan\nIn the 1998 war film Saving Private Ryan, General George Marshall (played by Harve Presnell) reads the Bixby letter to his officers before giving the order to find and send home Private James Francis Ryan after Ryan's three brothers died in battle.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "did abraham lincoln write the letter in saving private ryan",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "In the 1998 war film Saving Private Ryan, General George Marshall (played by Harve Presnell) reads the Bixby letter to his officers before giving the order to find and send home Private James Francis Ryan after Ryan's three brothers died in battle.",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    }
+  ],
+  "DROP": [
+    {
+      "prompt": "How many points did the buccaneers need to tie in the first?\nTo start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "How many points did the buccaneers need to tie in the first?",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "mathematical_reasoning"]
+          },
+          {
+            "value": "To start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
+            "slot": "source",
+            "compatible_task_types": ["question_answering", "mathematical_reasoning"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Who threw the first touchdown pass of the game?\nTo start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Who threw the first touchdown pass of the game?",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "To start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Which player scored the first points of the game for Tampa Bay?\nTo start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Which player scored the first points of the game for Tampa Bay?",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "To start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    }
+  ],
+  "DollyV2": [
+    {
+      "prompt": "Why can camels survive for long without water?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Why {question}",
+            "slots": ["question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "can camels survive for long without water",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "explanation"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "If I have more pieces at the time of stalemate, have I won?\nStalemate is a situation in chess where the player whose turn it is to move is not in check and has no legal move. Stalemate results in a draw. During the endgame, stalemate is a resource that can enable the player with the inferior position to draw the game rather than lose. In more complex positions, stalemate is much rarer, usually taking the form of a swindle that succeeds only if the superior side is inattentive.[citation needed] Stalemate is also a common theme in endgame studies and other chess problems.\n\nThe outcome of a stalemate was standardized as a draw in the 19th century. Before this standardization, its treatment varied widely, including being deemed a win for the stalemating player, a half-win for that player, or a loss for that player; not being permitted; and resulting in the stalemated player missing a turn. Stalemate rules vary in other games of the chess family.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "If I have more pieces at the time of stalemate, have I won",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "Stalemate is a situation in chess where the player whose turn it is to move is not in check and has no legal move. Stalemate results in a draw. During the endgame, stalemate is a resource that can enable the player with the inferior position to draw the game rather than lose. In more complex positions, stalemate is much rarer, usually taking the form of a swindle that succeeds only if the superior side is inattentive.[citation needed] Stalemate is also a common theme in endgame studies and other chess problems.The outcome of a stalemate was standardized as a draw in the 19th century. Before this standardization, its treatment varied widely, including being deemed a win for the stalemating player, a half-win for that player, or a loss for that player; not being permitted; and resulting in the stalemated player missing a turn. Stalemate rules vary in other games of the chess family.",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Why mobile is bad for human",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Why {topic}",
+            "slots": ["topic"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "mobile is bad for human",
+            "slot": "topic",
+            "compatible_task_types": ["question_answering", "argumentation"]
+          }
+        ]
+      }
+    }
+  ],
+  "FLAN": [
+    {
+      "prompt": "Dear Jared:  Please review the attached drafts of your requested confidentiality agreements with Peoples Gas System, NUI Corporation and Jacksonville Electric Authority. Please advise me or Gerald Nemec about recommended changes. Note to Ned Crady:  Since these CAs involve Enron Global Markets LLC as well as ENA, we would appreciate your review and approval of these documents as well. Thank you, \nPropose a subject line for this email?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{email}\nPropose a subject line for this email?",
+            "slots": ["email"],
+            "task_type": "communication_writing",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Dear Jared:  Please review the attached drafts of your requested confidentiality agreements with Peoples Gas System, NUI Corporation and Jacksonville Electric Authority. Please advise me or Gerald Nemec about recommended changes. Note to Ned Crady:  Since these CAs involve Enron Global Markets LLC as well as ENA, we would appreciate your review and approval of these documents as well. Thank you,",
+            "slot": "email",
+            "compatible_task_types": ["communication_writing", "summarization"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Write an email with the following subject:\n\nKaiser",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Write an email with the following subject:\n\n{topic}",
+            "slots": ["topic"],
+            "task_type": "communication_writing",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Kaiser",
+            "slot": "topic",
+            "compatible_task_types": ["communication_writing", "creative_writing"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Gerald,  I wanted to follow up on our on Monday regarding the GTC Point Specific confirmation for Torch Energy. Are you getting close to having something ready for us to send to them? We need to send them something to start reviewing today if at all possible. If you could let me know as soon as possible, I would appreciate it. Thanks, \n\nGenerate a subject line for this email.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{email}\n\nGenerate a subject line for this email.",
+            "slots": ["email"],
+            "task_type": "communication_writing",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Gerald,  I wanted to follow up on our on Monday regarding the GTC Point Specific confirmation for Torch Energy. Are you getting close to having something ready for us to send to them? We need to send them something to start reviewing today if at all possible. If you could let me know as soon as possible, I would appreciate it. Thanks,",
+            "slot": "email",
+            "compatible_task_types": ["communication_writing", "summarization"]
+          }
+        ]
+      }
+    }
+  ],
+  "FollowBench": [
+    {
+      "prompt": "Analyze the provided text to ascertain both the category and the sentiment (positive, neutral, or negative) it embodies. Additionally, conduct named entity recognition to emphasize important entities and establish the central theme. Moreover, undertake keyword extraction to mark prominent words, and engage in coreference resolution to identify references of the same entity within the text. Select the category from this array: company, educational institution, artist, athlete, office holder, means of transportation, building, natural place, village, animal, plant, album, film, or written work. Michael DenDekker - Michael G. DenDekker (born July 11, 1961) is an assemblyman for the state of New York's 34th district which includes the neighborhoods of Woodside, Jackson Heights, and East Elmhurst, all in the borough/county of Queens.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Analyze the provided text to ascertain both the category and the sentiment (positive, neutral, or negative) it embodies. Select the category from this array: {categories}. {text}",
+            "slots": ["categories", "text"],
+            "task_type": "classification",
+            "level": "content_task"
+          },
+          {
+            "text": "Additionally, conduct named entity recognition to emphasize important entities and establish the central theme. {text}",
+            "slots": ["text"],
+            "task_type": "information_extraction",
+            "level": "content_task"
+          },
+          {
+            "text": "Moreover, undertake keyword extraction to mark prominent words, and engage in coreference resolution to identify references of the same entity within the text. {text}",
+            "slots": ["text"],
+            "task_type": "information_extraction",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "company, educational institution, artist, athlete, office holder, means of transportation, building, natural place, village, animal, plant, album, film, or written work",
+            "slot": "categories",
+            "compatible_task_types": ["classification"]
+          },
+          {
+            "value": "Michael DenDekker - Michael G. DenDekker (born July 11, 1961) is an assemblyman for the state of New York's 34th district which includes the neighborhoods of Woodside, Jackson Heights, and East Elmhurst, all in the borough/county of Queens.",
+            "slot": "text",
+            "compatible_task_types": ["classification", "information_extraction"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "What, in the view of Milton Friedman, constitutes the primary responsibility of a business? Additionally, evaluate its influence on societal ethics and highlight one possible repercussion on community relations, incorporating one relevant case study for context.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "What, in the view of {person}, {question}? Additionally, {follow_up}, incorporating one relevant case study for context.",
+            "slots": ["person", "question", "follow_up"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Milton Friedman",
+            "slot": "person",
+            "compatible_task_types": ["question_answering", "argumentation"]
+          },
+          {
+            "value": "constitutes the primary responsibility of a business",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "argumentation"]
+          },
+          {
+            "value": "evaluate its influence on societal ethics and highlight one possible repercussion on community relations",
+            "slot": "follow_up",
+            "compatible_task_types": ["question_answering", "argumentation", "data_analysis"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "What, according to Milton Friedman, is the single duty of business, while also analyzing its impact on societal ethics and noting one potential consequence on community relations?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "What, according to {person}, {question}, while also analyzing {follow_up}?",
+            "slots": ["person", "question", "follow_up"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Milton Friedman",
+            "slot": "person",
+            "compatible_task_types": ["question_answering", "argumentation"]
+          },
+          {
+            "value": "is the single duty of business",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "argumentation"]
+          },
+          {
+            "value": "its impact on societal ethics and noting one potential consequence on community relations",
+            "slot": "follow_up",
+            "compatible_task_types": ["question_answering", "argumentation", "data_analysis"]
+          }
+        ]
+      }
+    }
+  ],
+  "GSM8K": [
+    {
+      "prompt": "Alexis is applying for a new job and bought a new set of business clothes to wear to the interview. She went to a department store with a budget of $200 and spent $30 on a button-up shirt, $46 on suit pants, $38 on a suit coat, $11 on socks, and $18 on a belt. She also purchased a pair of shoes, but lost the receipt for them. She has $16 left from her budget. How much did Alexis pay for the shoes?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{context}. How much {question}?",
+            "slots": ["context", "question"],
+            "task_type": "mathematical_reasoning",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Alexis is applying for a new job and bought a new set of business clothes to wear to the interview. She went to a department store with a budget of $200 and spent $30 on a button-up shirt, $46 on suit pants, $38 on a suit coat, $11 on socks, and $18 on a belt. She also purchased a pair of shoes, but lost the receipt for them. She has $16 left from her budget",
+            "slot": "context",
+            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+          },
+          {
+            "value": "did Alexis pay for the shoes",
+            "slot": "question",
+            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "James writes a 3-page letter to 2 different friends twice a week.  How many pages does he write a year?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{context}. How many {question} {time}?",
+            "slots": ["context", "question", "time"],
+            "task_type": "mathematical_reasoning",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "James writes a 3-page letter to 2 different friends twice a week",
+            "slot": "context",
+            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+          },
+          {
+            "value": "pages does he write",
+            "slot": "question",
+            "compatible_task_types": ["mathematical_reasoning"]
+          },
+          {
+            "value": "a year",
+            "slot": "time",
+            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{context}. How much did she earn?",
+            "slots": ["context"],
+            "task_type": "mathematical_reasoning",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting",
+            "slot": "context",
+            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+          }
+        ]
+      }
+    }
+  ],
+  "IFEval": [
+    {
+      "prompt": "Is Pikachu one of the Avengers? Think out loud, then answer with one of the following options: \"My answer is yes.\", \"My answer is no.\", \"My answer is maybe.\"",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}?",
+            "slots": ["question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          },
+          {
+            "text": "Think out loud, then answer with one of the following options: {options}",
+            "slots": ["options"],
+            "task_type": "chain_of_thought",
+            "level": "process_directive"
+          }
+        ],
+        "options": [
+          {
+            "value": "Is Pikachu one of the Avengers",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "\"My answer is yes.\", \"My answer is no.\", \"My answer is maybe.\"",
+            "slot": "options",
+            "compatible_task_types": ["chain_of_thought"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Which one is a better brand for sneakers: Prada or Nike? Your entire response should be in English, and in all capital letters. At the end of your response, please explicitly add a postscript starting with P.S. The word sneaker should appear 10 or more times in your response.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Which one is {criterion}: {options}?",
+            "slots": ["criterion", "options"],
+            "task_type": "ranking_comparison",
+            "level": "content_task"
+          },
+          {
+            "text": "Your entire response should be in {language}, and in all capital letters.",
+            "slots": ["language"],
+            "task_type": "response_language",
+            "level": "content_style_constraint"
+          },
+          {
+            "text": "and in all capital letters",
+            "slots": [],
+            "task_type": "casing_constraint",
+            "level": "content_style_constraint"
+          },
+          {
+            "text": "At the end of your response, please explicitly add a postscript starting with P.S.",
+            "slots": [],
+            "task_type": "structure_constraint",
+            "level": "format_constraint"
+          },
+          {
+            "text": "The word {keyword} should appear {n} or more times in your response.",
+            "slots": ["keyword", "n"],
+            "task_type": "keyword_frequency",
+            "level": "content_style_constraint"
+          }
+        ],
+        "options": [
+          {
+            "value": "a better brand for sneakers",
+            "slot": "criterion",
+            "compatible_task_types": ["ranking_comparison"]
+          },
+          {
+            "value": "Prada, Nike",
+            "slot": "options",
+            "compatible_task_types": ["ranking_comparison", "question_answering"]
+          },
+          {
+            "value": "English",
+            "slot": "language",
+            "compatible_task_types": ["response_language"]
+          },
+          {
+            "value": "sneaker",
+            "slot": "keyword",
+            "compatible_task_types": ["keyword_frequency", "keyword_inclusion"]
+          },
+          {
+            "value": "10",
+            "slot": "n",
+            "compatible_task_types": ["keyword_frequency", "length_constraint"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Write a description for the Pixel 3A smartphone with at least 400 words. Wrap your entire response with double quotation marks.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Write a description for the {topic}",
+            "slots": ["topic"],
+            "task_type": "explanation",
+            "level": "content_task"
+          },
+          {
+            "text": "with at least {n} words",
+            "slots": ["n"],
+            "task_type": "length_constraint",
+            "level": "format_constraint"
+          },
+          {
+            "text": "Wrap your entire response with double quotation marks.",
+            "slots": [],
+            "task_type": "quotation_constraint",
+            "level": "content_style_constraint"
+          }
+        ],
+        "options": [
+          {
+            "value": "Pixel 3A smartphone",
+            "slot": "topic",
+            "compatible_task_types": ["explanation", "creative_writing"]
+          },
+          {
+            "value": "400",
+            "slot": "n",
+            "compatible_task_types": ["length_constraint"]
+          }
+        ]
+      }
+    }
+  ],
+  "KCIFData": [
+    {
+      "prompt": "answer the question by selecting the option label corresponding to the correct answer. Do not include the text associated with the option label in the answer.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "answer the question by selecting the option label corresponding to the correct answer.",
+            "slots": [],
+            "task_type": "structure_constraint",
+            "level": "format_constraint"
+          },
+          {
+            "text": "Do not include the text associated with the option label in the answer.",
+            "slots": [],
+            "task_type": "forbidden_words",
+            "level": "content_style_constraint"
+          }
+        ],
+        "options": []
+      }
+    },
+    {
+      "prompt": "excluding the option that answers the question correctly, print a sorted list (ascending order) of the incorrect options. Do not print the option labels. Use the text associated with the option labels and not the option labels while sorting and printing.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "excluding the option that answers the question correctly, print a sorted list (ascending order) of the incorrect options.",
+            "slots": [],
+            "task_type": "ranking_comparison",
+            "level": "content_task"
+          },
+          {
+            "text": "Do not print the option labels. Use the text associated with the option labels and not the option labels while sorting and printing.",
+            "slots": [],
+            "task_type": "forbidden_words",
+            "level": "content_style_constraint"
+          }
+        ],
+        "options": []
+      }
+    },
+    {
+      "prompt": "capitalize the text associated with the optional label that answers the question correctly. Do not print the option label.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "capitalize the text associated with the optional label that answers the question correctly.",
+            "slots": [],
+            "task_type": "casing_constraint",
+            "level": "content_style_constraint"
+          },
+          {
+            "text": "Do not print the option label.",
+            "slots": [],
+            "task_type": "forbidden_words",
+            "level": "content_style_constraint"
+          }
+        ],
+        "options": []
+      }
+    }
+  ],
+  "LIMA": [
+    {
+      "prompt": "Can brain cells move? By movement I mean long distance migration (preferably within the brain only).\nThe question is relatively broad and one should take into account that the brain not only consists of neurons, but also glial cells (supportive cells) and pre-mitotic neuronal stem cells. Furthermore, as critical fellow-scientists have indicated, developmental stage is very important, as the developing embryonic brain is very different from the adult brain.\nHowever, after sifting through various publications, the answer to the question is actually remarkably simple: Yes, brain cells migrate.\nIn  the adult brain glial cells migrate in the brain (Klämbt, 2009). Glial cells are involved in a myriad of functions, but a notable example of migrating glial cells are the oligodendrocytes that migrate relative long distances to find their target axons onto which they wrap themselves to form the insulating myelin sheath (Tsai and Miller, 2002).\nNeuronal stem cells migrate over long distances in response to injury (Imitola et al., 2004) and they migrate from specific stem-cell locations (e.g., hippocampus and subventricular zone) to other regions (Clarke, 2003).\nPost-mitotic, but non-differentiated neurons have been shown to migrate in the adult brain in fish (Scott et al., 2012), and in mammals and non-human primates as well (Sawada et al., 2011).\nNot surprisingly, glial cells, stem cells and neurons also migrate during embryonic development. Most notably, post-mitotic neurons destined to fulfill peripheral functions have to migrate over relatively long distances from the neural crest to their target locations (Neuroscience, 2nd ed, Neuronal Migration).",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Can brain cells move? By movement I mean long distance migration (preferably within the brain only).",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "The question is relatively broad and one should take into account that the brain not only consists of neurons, but also glial cells (supportive cells) and pre-mitotic neuronal stem cells. Furthermore, as critical fellow-scientists have indicated, developmental stage is very important, as the developing embryonic brain is very different from the adult brain.However, after sifting through various publications, the answer to the question is actually remarkably simple: Yes, brain cells migrate.In  the adult brain glial cells migrate in the brain (Klämbt, 2009). Glial cells are involved in a myriad of functions, but a notable example of migrating glial cells are the oligodendrocytes that migrate relative long distances to find their target axons onto which they wrap themselves to form the insulating myelin sheath (Tsai and Miller, 2002).Neuronal stem cells migrate over long distances in response to injury (Imitola et al., 2004) and they migrate from specific stem-cell locations (e.g., hippocampus and subventricular zone) to other regions (Clarke, 2003).Post-mitotic, but non-differentiated neurons have been shown to migrate in the adult brain in fish (Scott et al., 2012), and in mammals and non-human primates as well (Sawada et al., 2011).Not surprisingly, glial cells, stem cells and neurons also migrate during embryonic development. Most notably, post-mitotic neurons destined to fulfill peripheral functions have to migrate over relatively long distances from the neural crest to their target locations (Neuroscience, 2nd ed, Neuronal Migration).",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "View tabular file such as CSV from command line, having horizontal and vertical scrolling would be great.\nSure, please take a look at csvkit. It provides a set of tools that adhere to the UNIX philosophy (meaning they are small, simple, single-purposed and can be combined). \n\nHere is an example that extracts the ten most populated cities in Germany from the free Maxmind World Cities database and displays the result in a console-readable format:\n```$ csvgrep -e iso-8859-1 -c 1 -m \"de\" worldcitiespop | csvgrep -c 5 -r \"\\d+\"\n  | csvsort -r -c 5 -l | csvcut -c 1,2,4,6 | head -n 11 | csvlook\n```\n\nCsvkit is platform independent because it is written in Python.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{question}\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "data_analysis",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "View tabular file such as CSV from command line, having horizontal and vertical scrolling would be great.",
+            "slot": "question",
+            "compatible_task_types": ["data_analysis", "code_generation"]
+          },
+          {
+            "value": "Sure, please take a look at csvkit. It provides a set of tools that adhere to the UNIX philosophy (meaning they are small, simple, single-purposed and can be combined). Here is an example that extracts the ten most populated cities in Germany from the free Maxmind World Cities database and displays the result in a console-readable format.",
+            "slot": "source",
+            "compatible_task_types": ["data_analysis", "code_generation"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Explain what \"git reset\" does. I come from a SVN background and Git is a whole new paradigm. I got mercurial easily, but Git is much more technical.\nI think ```git reset``` is close to ```hg revert```, but it seems there are differences. Please include detailed explanations about:\n\n* the options ```--hard```, ```--soft``` and ```--merge```;\n* the strange notation you use with ```HEAD``` such as ```HEAD^``` and ```HEAD~1```;\n* concrete use cases and work flows;\n* consequences on the working copy, the ```HEAD``` and your global stress level.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Explain {topic}.\n{context}",
+            "slots": ["topic", "context"],
+            "task_type": "explanation",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "what \"git reset\" does",
+            "slot": "topic",
+            "compatible_task_types": ["explanation", "question_answering"]
+          },
+          {
+            "value": "I come from a SVN background and Git is a whole new paradigm. I got mercurial easily, but Git is much more technical. Please include detailed explanations about: the options --hard, --soft and --merge; the strange notation you use with HEAD such as HEAD^ and HEAD~1; concrete use cases and work flows; consequences on the working copy, the HEAD and your global stress level.",
+            "slot": "context",
+            "compatible_task_types": ["explanation"]
+          }
+        ]
+      }
+    }
+  ],
+  "P3": [
+    {
+      "prompt": "Given the following passage\n\n\"Philosophical empiricists hold no knowledge to be properly inferred or deduced unless it is derived from one's sense-based experience. This view is commonly contrasted with rationalism, which states that knowledge may be derived from reason independently of the senses. For example, John Locke held that some knowledge (e.g. knowledge of God's existence) could be arrived at through intuition and reasoning alone. Similarly Robert Boyle, a prominent advocate of the experimental method, held that we have innate ideas. The main continental rationalists (Descartes, Spinoza, and Leibniz) were also advocates of the empirical \\\"scientific method\\\".\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: Who would not find it rational to believe in the unknown, such as God, for example?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Given the following passage\n\n\"{passage}\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: {question}?",
+            "slots": ["passage", "question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Who would not find it rational to believe in the unknown, such as God, for example",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "Philosophical empiricists hold no knowledge to be properly inferred or deduced unless it is derived from one's sense-based experience. This view is commonly contrasted with rationalism, which states that knowledge may be derived from reason independently of the senses. For example, John Locke held that some knowledge (e.g. knowledge of God's existence) could be arrived at through intuition and reasoning alone. Similarly Robert Boyle, a prominent advocate of the experimental method, held that we have innate ideas. The main continental rationalists (Descartes, Spinoza, and Leibniz) were also advocates of the empirical \"scientific method\".",
+            "slot": "passage",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Given the following passage\n\n\"Hume maintained that all knowledge, even the most basic beliefs about the natural world, cannot be conclusively established by reason. Rather, he maintained, our beliefs are more a result of accumulated habits, developed in response to accumulated sense experiences. Among his many arguments Hume also added another important slant to the debate about scientific method — that of the problem of induction.\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: According to Hume, what is knowledge primarily a result of?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Given the following passage\n\n\"{passage}\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: {question}?",
+            "slots": ["passage", "question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "According to Hume, what is knowledge primarily a result of",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "Hume maintained that all knowledge, even the most basic beliefs about the natural world, cannot be conclusively established by reason. Rather, he maintained, our beliefs are more a result of accumulated habits, developed in response to accumulated sense experiences. Among his many arguments Hume also added another important slant to the debate about scientific method — that of the problem of induction.",
+            "slot": "passage",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    }
+  ],
+  "SciQ": [
+    {
+      "prompt": "Zinc is more easily oxidized than iron because zinc has a lower reduction potential. since zinc has a lower reduction potential, it is a more what?\nOne way to keep iron from corroding is to keep it painted. The layer of paint prevents the water and oxygen necessary for rust formation from coming into contact with the iron. As long as the paint remains intact, the iron is protected from corrosion.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{context}. {question}?\n{source}",
+            "slots": ["context", "question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Zinc is more easily oxidized than iron because zinc has a lower reduction potential",
+            "slot": "context",
+            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+          },
+          {
+            "value": "since zinc has a lower reduction potential, it is a more what",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "One way to keep iron from corroding is to keep it painted. The layer of paint prevents the water and oxygen necessary for rust formation from coming into contact with the iron. As long as the paint remains intact, the iron is protected from corrosion.",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Alpha emission is a type of what?\nOne type of radioactivity is alpha emission. What is an alpha particle? What happens to an alpha particle after it is emitted from an unstable nucleus?.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "{object} is a type of what?\n{source}",
+            "slots": ["object", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Alpha emission",
+            "slot": "object",
+            "compatible_task_types": ["question_answering", "classification"]
+          },
+          {
+            "value": "One type of radioactivity is alpha emission. What is an alpha particle? What happens to an alpha particle after it is emitted from an unstable nucleus?.",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "What kind of a reaction occurs when a substance reacts quickly with oxygen?\nA combustion reaction occurs when a substance reacts quickly with oxygen (O 2 ). For example, in the Figure below , charcoal is combining with oxygen. Combustion is commonly called burning, and the substance that burns is usually referred to as fuel. The products of a complete combustion reaction include carbon dioxide (CO 2 ) and water vapor (H 2 O). The reaction typically gives off heat and light as well. The general equation for a complete combustion reaction is:.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "What {question}?\n{source}",
+            "slots": ["question", "source"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "kind of a reaction occurs when a substance reacts quickly with oxygen",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "classification"]
+          },
+          {
+            "value": "A combustion reaction occurs when a substance reacts quickly with oxygen (O 2 ). For example, in the Figure below , charcoal is combining with oxygen. Combustion is commonly called burning, and the substance that burns is usually referred to as fuel. The products of a complete combustion reaction include carbon dioxide (CO 2 ) and water vapor (H 2 O). The reaction typically gives off heat and light as well. The general equation for a complete combustion reaction is:.",
+            "slot": "source",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    }
+  ],
+  "Self-Instruct": [
+    {
+      "prompt": "Given an array of integers, find two integers that sum up to a specific target integer.\n\n[1, 2, 3, 4]\nTarget: 7",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Given an array of integers, find two integers that sum up to a specific target integer.\n\n[{number_list}]\nTarget: {n}",
+            "slots": ["number_list", "n"],
+            "task_type": "mathematical_reasoning",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "1, 2, 3, 4",
+            "slot": "number_list",
+            "compatible_task_types": ["mathematical_reasoning"]
+          },
+          {
+            "value": "7",
+            "slot": "n",
+            "compatible_task_types": ["mathematical_reasoning"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Given a list of numbers, find out if they are prime or not. you can answer \"prime\" or \"not prime\".\n\nInput: List: 1, 4, 6, 8, 9\n\nOutput:",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Given a list of numbers, find out if they are prime or not. you can answer \"prime\" or \"not prime\".\n\nInput: List: {number_list}\n\nOutput:",
+            "slots": ["number_list"],
+            "task_type": "mathematical_reasoning",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "1, 4, 6, 8, 9",
+            "slot": "number_list",
+            "compatible_task_types": ["mathematical_reasoning", "classification"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "What would you do if you won $1,000,000 in lottery?\nOutput:",
+      "annotation": {
+        "templates": [
+          {
+            "text": "What would you do if you won ${n} in {context}?\nOutput:",
+            "slots": ["n", "context"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "1,000,000",
+            "slot": "n",
+            "compatible_task_types": ["question_answering", "prediction"]
+          },
+          {
+            "value": "lottery",
+            "slot": "context",
+            "compatible_task_types": ["question_answering", "prediction"]
+          }
+        ]
+      }
+    }
+  ],
+  "TriviaQA": [
+    {
+      "prompt": "In which decade did Billboard magazine first publish and American hit chart?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "In which decade did {question}?",
+            "slots": ["question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Billboard magazine first publish an American hit chart",
+            "slot": "question",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Which William wrote the novel Lord Of The Flies?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Which {person_name} wrote {work}?",
+            "slots": ["person_name", "work"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "William",
+            "slot": "person_name",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "the novel Lord Of The Flies",
+            "slot": "work",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "How is musician William Lee Conley better known?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "How is {person_type} {person} better known?",
+            "slots": ["person_type", "person"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "musician",
+            "slot": "person_type",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "William Lee Conley",
+            "slot": "person",
+            "compatible_task_types": ["question_answering"]
+          }
+        ]
+      }
+    }
+  ],
+  "WizardLM (Evol-Instruct)": [
+    {
+      "prompt": "In what ways can you expand the scope and depth of data analysis to increase the precision and accuracy of an algorithm specifically developed to predict weather patterns in a particular region, taking into account multiple factors such as historical data, temperature, humidity, wind speed, and atmospheric pressure? Moreover, how can you incorporate the possible effects of external factors such as natural disasters and climate change on weather patterns into the predictive model, and what could be the potential impacts of such factors on the accuracy of the model?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "In what ways can you {question}?",
+            "slots": ["question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          },
+          {
+            "text": "Moreover, how can you {follow_up}?",
+            "slots": ["follow_up"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "expand the scope and depth of data analysis to increase the precision and accuracy of an algorithm specifically developed to predict weather patterns in a particular region, taking into account multiple factors such as historical data, temperature, humidity, wind speed, and atmospheric pressure",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "data_analysis", "prediction"]
+          },
+          {
+            "value": "incorporate the possible effects of external factors such as natural disasters and climate change on weather patterns into the predictive model, and what could be the potential impacts of such factors on the accuracy of the model",
+            "slot": "follow_up",
+            "compatible_task_types": ["question_answering", "data_analysis", "prediction"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "How can we develop a Java program that analyzes the impact of cultural differences on communication patterns between couples? Specifically, how can we incorporate data on cultural norms and values into our analysis of communication strategies? Additionally, how can we use Java to generate an outline for an essay on the importance of effective communication in relationships, taking into account the role of cultural diversity?",
+      "annotation": {
+        "templates": [
+          {
+            "text": "How can we develop a {programming_language} program that {programming_task}?",
+            "slots": ["programming_language", "programming_task"],
+            "task_type": "code_generation",
+            "level": "content_task"
+          },
+          {
+            "text": "Specifically, how can {question}?",
+            "slots": ["question"],
+            "task_type": "question_answering",
+            "level": "content_task"
+          },
+          {
+            "text": "Additionally, how can we use {programming_language} to generate an outline for {text_type} on {topic}?",
+            "slots": ["programming_language", "text_type", "topic"],
+            "task_type": "code_generation",
+            "level": "content_task"
+          }
+        ],
+        "options": [
+          {
+            "value": "Java",
+            "slot": "programming_language",
+            "compatible_task_types": ["code_generation"]
+          },
+          {
+            "value": "analyzes the impact of cultural differences on communication patterns between couples",
+            "slot": "programming_task",
+            "compatible_task_types": ["code_generation"]
+          },
+          {
+            "value": "we incorporate data on cultural norms and values into our analysis of communication strategies",
+            "slot": "question",
+            "compatible_task_types": ["question_answering", "data_analysis"]
+          },
+          {
+            "value": "an essay",
+            "slot": "text_type",
+            "compatible_task_types": ["code_generation", "creative_writing"]
+          },
+          {
+            "value": "the importance of effective communication in relationships, taking into account the role of cultural diversity",
+            "slot": "topic",
+            "compatible_task_types": ["code_generation", "creative_writing", "planning"]
+          }
+        ]
+      }
+    }
+  ]
+}

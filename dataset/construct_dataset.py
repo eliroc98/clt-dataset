@@ -83,7 +83,7 @@ LEVELS = ("content_task", "format", "style", "content_constraint", "meta")
 CONSTRAINT_LEVELS = ("format", "style", "content_constraint", "meta")
 
 sys.path.insert(0, str(BASE_DIR.parent))
-from dataset.collect_task_types import (
+from dataset.taxonomy.collect_task_types import (
     DATASET_REGISTRY,
     load_hf_dataset,
     load_github_data,
@@ -316,175 +316,41 @@ Each option object has:
 Rules:
 - A single prompt may contain MULTIPLE templates (e.g. a task + several constraints).
 - Templates should be GENERAL: replace specific values with {slot} placeholders.
+- Options should be those parts that can be swapped with somehitng else to produce a valid prompt of the same type.
 - The exemplars given are just flawed examples — do not copy them verbatim. Focus on the underlying principles.
 - slot names should be generic and descriptive (e.g. "option_content", "n", "keywords") — not tied to the specific prompt.
 - Options should be the SPECIFIC values removed from the prompt.
 - An option may be compatible with MULTIPLE task types — list all plausible ones.
 - Use the taxonomy labels provided; do not invent new ones.
 - Only output valid JSON — no markdown fences, no commentary.
-"""
 
-_EXTRACTION_FEW_SHOT = [
-    {
-        "role": "user",
-        "content": (
-            'Taxonomy labels: ["creative_writing", "email", "number_words", '
-            '"keyword_inclusion", "no_commas", "summarization", "question_answering", '
-            '"number_sentences", "all_lowercase"]\n\n'
-            "Prompt:\n"
-            '"Write a long email template that invites a group of participants to a meeting, '
-            'with at least 500 words. The email must include the keywords "correlated" '
-            'and "experiencing" and should not use any commas."'
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": json.dumps(
-            {
-                "templates": [
-                    {
-                        "text": "Write {description}",
-                        "slots": ["description"],
-                        "task_type": "email",
-                        "level": "content_task",
-                    },
-                    {
-                        "text": "with at least {n} words",
-                        "slots": ["n"],
-                        "task_type": "number_words",
-                        "level": "format",
-                    },
-                    {
-                        "text": 'The {document_type} must include the keywords {keywords}',
-                        "slots": ["document_type", "keywords"],
-                        "task_type": "keyword_inclusion",
-                        "level": "content_constraint",
-                    },
-                    {
-                        "text": "should not use any {punctuation}",
-                        "slots": ["punctuation"],
-                        "task_type": "no_commas",
-                        "level": "content_constraint",
-                    },
-                ],
-                "options": [
-                    {
-                        "value": "a long email template that invites a group of participants to a meeting",
-                        "slot": "description",
-                        "compatible_task_types": [
-                            "email",
-                            "creative_writing",
-                        ],
-                    },
-                    {
-                        "value": "500",
-                        "slot": "n",
-                        "compatible_task_types": [
-                            "number_words",
-                            "number_sentences",
-                            "number_paragraphs",
-                        ],
-                    },
-                    {
-                        "value": "email",
-                        "slot": "document_type",
-                        "compatible_task_types": [
-                            "keyword_inclusion",
-                            "keyword_frequency",
-                        ],
-                    },
-                    {
-                        "value": '"correlated" and "experiencing"',
-                        "slot": "keywords",
-                        "compatible_task_types": [
-                            "keyword_inclusion",
-                            "keyword_frequency",
-                        ],
-                    },
-                    {
-                        "value": "commas",
-                        "slot": "punctuation",
-                        "compatible_task_types": [
-                            "no_commas",
-                            "punctuation_or_token_exclusion",
-                        ],
-                    },
-                ],
-            },
-            ensure_ascii=False,
-        ),
-    },
-    {
-        "role": "user",
-        "content": (
-            'Taxonomy labels: ["question_answering", "number_sentences", '
-            '"all_lowercase", "end_checker", "summarization", "explanation"]\n\n'
-            "Prompt:\n"
-            '"Explain how photosynthesis works in exactly 5 sentences. Write '
-            "everything in lowercase. End your response with the exact phrase: "
-            '"that is all."'
-        ),
-    },
-    {
-        "role": "assistant",
-        "content": json.dumps(
-            {
-                "templates": [
-                    {
-                        "text": "Explain {topic}",
-                        "slots": ["topic"],
-                        "task_type": "explanation",
-                        "level": "content_task",
-                    },
-                    {
-                        "text": "in exactly {n} sentences",
-                        "slots": ["n"],
-                        "task_type": "number_sentences",
-                        "level": "format",
-                    },
-                    {
-                        "text": "Write everything in lowercase",
-                        "slots": [],
-                        "task_type": "all_lowercase",
-                        "level": "style",
-                    },
-                    {
-                        "text": 'End your response with the exact phrase: "{phrase}"',
-                        "slots": ["phrase"],
-                        "task_type": "end_checker",
-                        "level": "style",
-                    },
-                ],
-                "options": [
-                    {
-                        "value": "how photosynthesis works",
-                        "slot": "topic",
-                        "compatible_task_types": [
-                            "explanation",
-                            "question_answering",
-                            "summarization",
-                        ],
-                    },
-                    {
-                        "value": "5",
-                        "slot": "n",
-                        "compatible_task_types": [
-                            "number_sentences",
-                            "number_words",
-                            "number_paragraphs",
-                        ],
-                    },
-                    {
-                        "value": "that is all",
-                        "slot": "phrase",
-                        "compatible_task_types": ["end_checker"],
-                    },
-                ],
-            },
-            ensure_ascii=False,
-        ),
-    },
-]
+Slot Naming Guidelines:
+- Examples: Alice (is a) person, so the slot name should be "person". Basically, ask yourslef the "is a" question to find the most natural, general slot name.
+- Use `n` for ALL numeric values (counts, quantities, amounts). Do NOT use numbered variants like n1, n2, n3.
+- Use `topic` for subject matter, `description` for content descriptions, `text` for prose passages.
+- Use `options` (single slot) for answer choices — NOT separate `option_a`, `option_b`, `option_c` slots. Join values like "west, east, north, south".
+- Use `completions` (single slot) for sentence completions — NOT `completion_a`, `completion_b`, etc.
+- Use `keywords` (single slot, plural) for keyword lists.
+- Use `code` or `function_code` for full code blocks — not just variable names within them.
+- Use `text_type` for document types (essay, paragraph, email, letter, article).
+- Use `programming_language` for language names in code prompts.
+- Use `question` for questions, `passage` or `source` for reference text passages.
+- Use `context` for background information provided before a question.
+- Avoid numbered slot variants (n1, n2, n3..., category1, category2...). Group related items into a single slot with a compound value instead.
+
+Additional Rules:
+- Slot names must NEVER equal their values. If a slot would be named the same as its value, choose a more general category name (e.g. slot "happy" with value "happy" should become slot "emotion" with value "happy").
+- Maximize generality: if a specific word/phrase in the template could be replaced with a different value to produce a valid prompt, it SHOULD be a slot. E.g. "Write an essay" → "Write a {text_type}", "six feet" → "{n} feet".
+- For code-related prompts, parameterize the entire code block as a single `{code}` or `{function_code}` slot, not just variable names within it.
+- When multiple items of the same type appear (e.g. multiple answer options), use a single list-style slot like `{options}` rather than separate `{option_a}`, `{option_b}` slots. Format the slot value as a joined string.
+
+Common Mistakes to Avoid:
+- BAD: slots ["f"] for function name only → GOOD: slots ["function_code"] for the entire function body.
+- BAD: slots [] for "Write an essay on topic X" → GOOD: slots ["text_type", "topic"] to parameterize both the document type and subject.
+- BAD: slot "happy", value "happy" → GOOD: slot "emotion", value "happy" (slot name must not equal value).
+- BAD: option_a, option_b, option_c, option_d as separate slots → GOOD: single "options" slot with joined value "west, east, north, south".
+- BAD: n1, n2, n3 as separate slots for numbers in a list → GOOD: single "number_list" slot with joined value "1, 2, 3, 4".
+"""
 
 
 # ── Dataset-specific few-shot loading ──────────────────────────────────
@@ -545,8 +411,8 @@ def _get_few_shot_messages(
 
     If *dataset_name* is given and the ``few_shot_examples.json`` file
     contains entries for that dataset, those are used (rendered on-the-fly
-    with the current taxonomy labels).  Otherwise falls back to the
-    built-in ``_EXTRACTION_FEW_SHOT``.
+    with the current taxonomy labels).  Otherwise returns an empty list
+    (zero-shot with system prompt only).
     """
     if dataset_name:
         store = _load_dataset_few_shots()
@@ -573,8 +439,8 @@ def _get_few_shot_messages(
             if messages:
                 return messages
 
-    # Default: built-in generic examples
-    return _EXTRACTION_FEW_SHOT
+    # No dataset-specific examples available — zero-shot with system prompt
+    return []
 
 
 def _build_extraction_messages(
@@ -585,8 +451,8 @@ def _build_extraction_messages(
     """Build the chat messages for one LLM extraction call.
 
     When *dataset_name* is provided and matching examples exist in
-    ``few_shot_examples.json``, those dataset-specific examples are used
-    instead of the generic ``_EXTRACTION_FEW_SHOT``.
+    ``few_shot_examples.json``, those dataset-specific examples are used.
+    Otherwise falls back to zero-shot (system prompt only).
     """
     labels_str = json.dumps(taxonomy_labels)
     few_shot = _get_few_shot_messages(dataset_name, taxonomy_labels)
@@ -771,12 +637,528 @@ def _repair_json(raw: str) -> dict:
     )
 
 
+# ── Post-processing normalization ────────────────────────────────────────
+
+# Canonical mapping: known bad slot names → standard names
+SLOT_CANONICAL_MAP: dict[str, str] = {}
+# Numeric variants
+for _i in range(0, 31):
+    SLOT_CANONICAL_MAP[f"n{_i}"] = "n"
+for _name in ("value", "total", "amount", "count", "number"):
+    SLOT_CANONICAL_MAP[_name] = "n"
+# Option variants (with and without underscore)
+for _suffix in ("a", "b", "c", "d", "e"):
+    SLOT_CANONICAL_MAP[f"option_{_suffix}"] = "option"
+    SLOT_CANONICAL_MAP[f"completion_{_suffix}"] = "completion"
+    SLOT_CANONICAL_MAP[f"example_{_suffix}"] = "example"
+    SLOT_CANONICAL_MAP[f"object_{_suffix}"] = "object"
+for _i in range(1, 11):
+    SLOT_CANONICAL_MAP[f"option_{_i}"] = "option"
+    SLOT_CANONICAL_MAP[f"option{_i}"] = "option"
+    SLOT_CANONICAL_MAP[f"completion_{_i}"] = "completion"
+    SLOT_CANONICAL_MAP[f"completion{_i}"] = "completion"
+    SLOT_CANONICAL_MAP[f"example_{_i}"] = "example"
+# Numbered categories (extend to cover actual data ranges)
+for _i in range(1, 101):
+    SLOT_CANONICAL_MAP[f"category{_i}"] = "category"
+    SLOT_CANONICAL_MAP[f"category_{_i}"] = "category"
+    SLOT_CANONICAL_MAP[f"topic{_i}"] = "topic"
+    SLOT_CANONICAL_MAP[f"topic_{_i}"] = "topic"
+    SLOT_CANONICAL_MAP[f"keyword_{_i}"] = "keyword"
+    SLOT_CANONICAL_MAP[f"keyword{_i}"] = "keyword"
+    SLOT_CANONICAL_MAP[f"emotion{_i}"] = "emotion"
+    SLOT_CANONICAL_MAP[f"emotion_{_i}"] = "emotion"
+
+# Single-letter slot fallbacks (case-insensitive)
+_SINGLE_LETTER_MAP_LOWER = {
+    "p": "passage", "s": "sentence", "t": "topic",
+    "a": "option", "b": "option", "c": "option", "d": "option", "e": "option",
+    "f": "function_code", "g": "group", "h": "heading",
+    "i": "item", "j": "item",
+    "l": "language", "n": "n", "q": "question",
+    "v": "value", "w": "word",
+}
+_SINGLE_LETTER_MAP = {
+    **_SINGLE_LETTER_MAP_LOWER,
+    **{k.upper(): v for k, v in _SINGLE_LETTER_MAP_LOWER.items()},
+}
+
+# Task-type → default slot name for self-replicating slot detection
+_TASK_TYPE_TO_DEFAULT_SLOT: dict[str, str] = {
+    "sentiment_analysis": "sentiment",
+    "classification": "category",
+    "creative_writing": "topic",
+    "question_answering": "topic",
+    "explanation": "topic",
+    "code_generation": "programming_task",
+    "summarization": "topic",
+    "rewriting_paraphrasing": "topic",
+    "multiple_choice_qa": "option",
+}
+
+
+def _normalize_slot_names(
+    templates: list[dict], options: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    """Rename known bad slot names to canonical forms in-place.
+
+    Applies ``SLOT_CANONICAL_MAP`` and single-letter fallbacks to both
+    template slot lists / text and option slot fields.
+
+    Collision-aware: if multiple slots in the same template would map to
+    the same canonical name, those renames are skipped for that template
+    (they should be handled by ``_merge_numbered_slots`` instead).
+    """
+    # Build the rename map for slots actually present
+    rename: dict[str, str] = {}
+    all_slots: set[str] = set()
+    for t in templates:
+        all_slots.update(t.get("slots", []))
+    for o in options:
+        s = o.get("slot", "")
+        if s:
+            all_slots.add(s)
+
+    for slot in all_slots:
+        if slot in SLOT_CANONICAL_MAP:
+            rename[slot] = SLOT_CANONICAL_MAP[slot]
+        elif len(slot) == 1 and slot in _SINGLE_LETTER_MAP:
+            rename[slot] = _SINGLE_LETTER_MAP[slot]
+
+    if not rename:
+        return templates, options
+
+    rename_count = 0
+
+    # Apply renames per-template with collision detection
+    for t in templates:
+        t_slots = t.get("slots", [])
+        # Determine which renames apply to this template
+        applicable = {s: rename[s] for s in t_slots if s in rename}
+        if not applicable:
+            continue
+        # Detect collisions: multiple old slots → same canonical name
+        target_counts: dict[str, int] = {}
+        for new in applicable.values():
+            target_counts[new] = target_counts.get(new, 0) + 1
+        collisions = {new for new, cnt in target_counts.items() if cnt > 1}
+        # Only apply non-colliding renames (collisions → _merge_numbered_slots)
+        safe = {old: new for old, new in applicable.items()
+                if new not in collisions}
+        if not safe:
+            continue
+        new_slots = [safe.get(s, s) for s in t_slots]
+        text = t.get("text", "")
+        for old, new in safe.items():
+            text = text.replace(f"{{{old}}}", f"{{{new}}}")
+        t["slots"] = new_slots
+        t["text"] = text
+        rename_count += len(safe)
+
+    # Apply renames to options (only if the slot doesn't collide in ANY template)
+    # Build set of slots that collide somewhere
+    colliding_slots: set[str] = set()
+    for t in templates:
+        t_slots = t.get("slots", [])
+        applicable = {s: rename[s] for s in t_slots if s in rename}
+        target_counts: dict[str, int] = {}
+        for new in applicable.values():
+            target_counts[new] = target_counts.get(new, 0) + 1
+        for old, new in applicable.items():
+            if target_counts.get(new, 0) > 1:
+                colliding_slots.add(old)
+
+    opt_rename_count = 0
+    for o in options:
+        slot = o.get("slot", "")
+        if slot in rename and slot not in colliding_slots:
+            o["slot"] = rename[slot]
+            opt_rename_count += 1
+
+    if rename_count or opt_rename_count:
+        logger.info(
+            f"  Slot normalization: {rename_count} template slot renames, "
+            f"{opt_rename_count} option slot renames"
+        )
+
+    return templates, options
+
+
+def _detect_self_replicating_slots(
+    options: list[dict],
+    templates: list[dict],
+) -> list[dict]:
+    """Fix options where slot name equals the value (self-replicating).
+
+    When detected, renames the slot to a more general category based on
+    compatible task types.  Also updates any matching template slot lists/text.
+    """
+    # Collect task types from templates for context
+    template_task_types = [t.get("task_type", "") for t in templates]
+
+    for o in options:
+        slot = o.get("slot", "")
+        value = o.get("value", "")
+        if not slot or not value:
+            continue
+
+        # Check: slot == value (case-insensitive) or slot appears in short value
+        value_lower = value.lower().strip()
+        is_self_rep = (
+            slot.lower() == value_lower
+            or (len(value.split()) < 3 and slot.lower() in value_lower)
+        )
+        if not is_self_rep:
+            continue
+
+        # Try to find a better name from task types
+        new_slot = None
+        for tt in (o.get("compatible_task_types", []) + template_task_types):
+            if tt in _TASK_TYPE_TO_DEFAULT_SLOT:
+                candidate = _TASK_TYPE_TO_DEFAULT_SLOT[tt]
+                if candidate.lower() != value_lower:
+                    new_slot = candidate
+                    break
+
+        if not new_slot:
+            new_slot = "content"
+
+        logger.info(
+            f"  Self-replicating slot: '{slot}'='{value}' → renamed to '{new_slot}'"
+        )
+
+        # Update templates that reference this slot
+        for t in templates:
+            t_slots = t.get("slots", [])
+            if slot in t_slots:
+                t["slots"] = [new_slot if s == slot else s for s in t_slots]
+                t["text"] = t.get("text", "").replace(f"{{{slot}}}", f"{{{new_slot}}}")
+
+        o["slot"] = new_slot
+
+    return options
+
+
+def _merge_numbered_slots(
+    templates: list[dict], options: list[dict],
+    *,
+    join_values: bool = True,
+) -> tuple[list[dict], list[dict]]:
+    """Merge numbered slot variants into a single compound slot.
+
+    Detects patterns like n1, n2, n3 (same base name with numeric suffix)
+    and merges them into a single slot (e.g. ``number_list``) with a
+    joined value.
+
+    When *join_values* is False (for global normalization on existing data),
+    option slot names are renamed but values are kept individual rather than
+    being joined into a single combined option.
+    """
+    # Detect numbered slot groups across all templates
+    numbered_re = re.compile(r"^(.+?)(\d+)$")
+    base_groups: dict[str, list[str]] = defaultdict(list)
+
+    all_slots: set[str] = set()
+    for t in templates:
+        all_slots.update(t.get("slots", []))
+
+    for slot in sorted(all_slots):
+        m = numbered_re.match(slot)
+        if m:
+            base = m.group(1).rstrip("_")
+            base_groups[base].append(slot)
+
+    # Only merge groups with 2+ numbered variants
+    merge_map: dict[str, str] = {}  # old_slot → new_merged_slot
+    merged_bases: dict[str, str] = {}  # base → merged_slot_name
+
+    for base, slots in base_groups.items():
+        if len(slots) < 2:
+            continue
+        if base == "n" or base == "":
+            merged_name = "number_list"
+        else:
+            merged_name = f"{base}_list" if not base.endswith("s") else base
+        merged_bases[base] = merged_name
+        for s in slots:
+            merge_map[s] = merged_name
+
+    if not merge_map:
+        return templates, options
+
+    logger.info(
+        f"  Merging numbered slots: {len(merge_map)} slots across "
+        f"{len(merged_bases)} base groups "
+        f"({', '.join(f'{b}→{n}' for b, n in sorted(merged_bases.items())[:10])}"
+        f"{'...' if len(merged_bases) > 10 else ''})"
+    )
+
+    # Merge options: group by template, join values
+    for t in templates:
+        t_slots = t.get("slots", [])
+        slots_to_merge = [s for s in t_slots if s in merge_map]
+        if not slots_to_merge:
+            continue
+
+        # Group by merged name
+        groups: dict[str, list[str]] = defaultdict(list)
+        for s in slots_to_merge:
+            groups[merge_map[s]].append(s)
+
+        text = t.get("text", "")
+        new_slots = []
+        seen_merged: set[str] = set()
+
+        for s in t_slots:
+            if s in merge_map:
+                merged = merge_map[s]
+                if merged not in seen_merged:
+                    new_slots.append(merged)
+                    seen_merged.add(merged)
+                    # In template text: replace first occurrence with {merged},
+                    # remove subsequent ones
+                    text = text.replace(f"{{{s}}}", f"{{{merged}}}", 1)
+                else:
+                    # Remove this placeholder and surrounding separators
+                    # Try patterns like ", {slot}" or "{slot}, " or "{slot}"
+                    for pattern in [f", {{{s}}}", f"{{{s}}}, ", f"{{{s}}}"]:
+                        if pattern in text:
+                            text = text.replace(pattern, "", 1)
+                            break
+            else:
+                new_slots.append(s)
+
+        t["slots"] = new_slots
+        t["text"] = text
+
+    # Merge option values
+    # Group options by their slot's merge target
+    merged_options_by_target: dict[str, list[dict]] = defaultdict(list)
+    kept_options: list[dict] = []
+
+    for o in options:
+        if o.get("slot", "") in merge_map:
+            target = merge_map[o["slot"]]
+            merged_options_by_target[target].append(o)
+        else:
+            kept_options.append(o)
+
+    if join_values:
+        # Per-prompt mode: join values from related options into one
+        for target, group in merged_options_by_target.items():
+            joined_value = ", ".join(o.get("value", "") for o in group)
+            merged_opt = dict(group[0])
+            merged_opt["slot"] = target
+            merged_opt["value"] = joined_value
+            all_types: list[str] = []
+            for o in group:
+                for tt in o.get("compatible_task_types", []):
+                    if tt not in all_types:
+                        all_types.append(tt)
+            merged_opt["compatible_task_types"] = all_types
+            kept_options.append(merged_opt)
+    else:
+        # Global mode: just rename option slots, keep values individual
+        for target, group in merged_options_by_target.items():
+            for o in group:
+                o["slot"] = target
+                kept_options.append(o)
+
+    return templates, kept_options
+
+
+def _sync_template_slots(
+    templates: list[dict],
+) -> list[dict]:
+    """Ensure template slot lists match the ``{placeholder}`` references in text.
+
+    - Adds placeholders found in text but missing from the slots list.
+    - Removes slots that are declared but not referenced in text.
+    """
+    placeholder_re = re.compile(r"\{(\w+)\}")
+    added_total = 0
+    removed_total = 0
+
+    for t in templates:
+        slots = list(t.get("slots", []))
+        text = t.get("text", "")
+        placeholders = set(placeholder_re.findall(text))
+        slot_set = set(slots)
+
+        missing = placeholders - slot_set
+        phantom = slot_set - placeholders
+
+        if missing or phantom:
+            new_slots = [s for s in slots if s not in phantom]
+            new_slots.extend(sorted(missing))
+            t["slots"] = new_slots
+            added_total += len(missing)
+            removed_total += len(phantom)
+
+    if added_total or removed_total:
+        logger.info(
+            f"  Slot sync: added {added_total} missing slots, "
+            f"removed {removed_total} phantom slots"
+        )
+
+    return templates
+
+
+def _remove_broken_options(
+    options: list[dict],
+) -> list[dict]:
+    """Remove options whose value looks like an unresolved placeholder.
+
+    These are options where the value contains ``{word}`` patterns,
+    indicating the LLM returned template text as an option value.
+    """
+    placeholder_re = re.compile(r"\{\w+\}")
+    kept: list[dict] = []
+    removed = 0
+
+    for o in options:
+        value = o.get("value", "")
+        if placeholder_re.search(value):
+            removed += 1
+        else:
+            kept.append(o)
+
+    if removed:
+        logger.info(f"  Removed {removed} options with placeholder values")
+
+    return kept
+
+
+def _deduplicate_templates(
+    templates: list[dict], options: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    """Remove templates with duplicate text, keeping the first occurrence.
+
+    Also updates option ``compatible_templates`` to drop removed template IDs.
+    """
+    seen_texts: dict[str, str] = {}  # text → kept template id
+    removed_ids: set[str] = set()
+    kept_templates: list[dict] = []
+
+    for t in templates:
+        text = t.get("text", "")
+        tid = t.get("id", "")
+        if text in seen_texts:
+            removed_ids.add(tid)
+        else:
+            seen_texts[text] = tid
+            kept_templates.append(t)
+
+    if removed_ids:
+        # Update option compatible_templates references
+        for o in options:
+            compat = o.get("compatible_templates", [])
+            if any(tid in removed_ids for tid in compat):
+                o["compatible_templates"] = [
+                    tid for tid in compat if tid not in removed_ids
+                ]
+
+        logger.info(
+            f"  Deduplicated: removed {len(removed_ids)} duplicate templates"
+        )
+
+    return kept_templates, options
+
+
+def _deduplicate_options(
+    options: list[dict],
+) -> list[dict]:
+    """Remove duplicate options that share the same (slot, value) pair.
+
+    Keeps the first occurrence and merges ``compatible_task_types`` and
+    ``compatible_templates`` from later duplicates into it.
+    """
+    seen: dict[tuple[str, str], dict] = {}
+    kept: list[dict] = []
+    removed = 0
+
+    for o in options:
+        key = (o.get("slot", ""), o.get("value", ""))
+        if key in seen:
+            # Merge compatibility info into the kept copy
+            existing = seen[key]
+            for tt in o.get("compatible_task_types", []):
+                if tt not in existing.get("compatible_task_types", []):
+                    existing.setdefault("compatible_task_types", []).append(tt)
+            for tid in o.get("compatible_templates", []):
+                if tid not in existing.get("compatible_templates", []):
+                    existing.setdefault("compatible_templates", []).append(tid)
+            removed += 1
+        else:
+            seen[key] = o
+            kept.append(o)
+
+    if removed:
+        logger.info(f"  Deduplicated: removed {removed} duplicate options")
+
+    return kept
+
+
+def _remove_orphaned_options(
+    options: list[dict],
+    templates: list[dict],
+) -> list[dict]:
+    """Remove options whose slot is not referenced by any template.
+
+    Also removes options with empty or whitespace-only values.
+    """
+    template_slots: set[str] = set()
+    for t in templates:
+        template_slots.update(t.get("slots", []))
+
+    kept: list[dict] = []
+    orphaned = 0
+    empty = 0
+
+    for o in options:
+        value = o.get("value", "")
+        if not value.strip():
+            empty += 1
+            continue
+        slot = o.get("slot", "")
+        if slot not in template_slots:
+            orphaned += 1
+            continue
+        kept.append(o)
+
+    if orphaned or empty:
+        logger.info(
+            f"  Removed {orphaned} orphaned options (slot not in any template), "
+            f"{empty} empty-value options"
+        )
+
+    return kept
+
+
 def _parse_llm_extraction(
     raw: str,
     taxonomy: dict,
+    *,
+    merge_numbered: bool = False,
 ) -> tuple[list[TaskTemplate], list[Option]]:
-    """Parse the JSON returned by the LLM into TaskTemplate / Option objects."""
+    """Parse the JSON returned by the LLM into TaskTemplate / Option objects.
+
+    Applies post-processing normalization:
+    - Canonical slot name mapping (e.g. n1 → n, option_a → option)
+    - Self-replicating slot detection (slot name == value)
+    - Optionally merges numbered slot variants when *merge_numbered* is True
+    - Quality warnings for suspicious patterns
+    """
     data = _repair_json(raw)
+
+    # ── Post-processing normalization on raw dicts ───────────────────
+    raw_templates = data.get("templates", [])
+    raw_options = data.get("options", [])
+
+    raw_templates, raw_options = _normalize_slot_names(raw_templates, raw_options)
+    _detect_self_replicating_slots(raw_options, raw_templates)
+    if merge_numbered:
+        raw_templates, raw_options = _merge_numbered_slots(raw_templates, raw_options)
 
     valid_levels = set(LEVELS)
     valid_task_types = set(taxonomy.keys())
@@ -784,7 +1166,7 @@ def _parse_llm_extraction(
     templates: list[TaskTemplate] = []
     options: list[Option] = []
 
-    for t in data.get("templates", []):
+    for t in raw_templates:
         task_type = t.get("task_type", "unknown")
         level = t.get("level", "content_task")
         text = t.get("text", "")
@@ -796,6 +1178,18 @@ def _parse_llm_extraction(
             continue
         if level not in valid_levels:
             level = taxonomy.get(task_type, {}).get("level", "content_task")
+
+        # ── Quality warnings ─────────────────────────────────────────
+        if level == "content_task" and not slots:
+            logger.warning(
+                f"  content_task template with 0 slots (may be under-parameterized): "
+                f"'{text[:80]}…'"
+            )
+        if len(slots) > 6:
+            logger.warning(
+                f"  Template with {len(slots)} slots (may be over-fragmented): "
+                f"'{text[:80]}…'"
+            )
 
         # Compute token length of the fixed frame (text minus slot placeholders)
         fixed_text = text
@@ -815,10 +1209,16 @@ def _parse_llm_extraction(
         )
         templates.append(tmpl)
 
-    for o in data.get("options", []):
+    for o in raw_options:
         value = o.get("value", "")
         slot = o.get("slot", "")
         compat_types = o.get("compatible_task_types", [])
+
+        # Warn if slot name matches its value exactly
+        if slot and value and slot.lower() == value.lower().strip():
+            logger.warning(
+                f"  Option slot name equals value: slot='{slot}', value='{value}'"
+            )
 
         # Filter to known task types
         compat_types = [ct for ct in compat_types if ct in valid_task_types]
@@ -1961,6 +2361,11 @@ examples:
     parser.add_argument("--test", action="store_true",
                         help="Smoke-test mode: stream 2 prompts per dataset and generate 5 "
                              "synthetic prompts to verify the pipeline end-to-end")
+    parser.add_argument("--merge-numbered-slots", action="store_true",
+                        help="Merge numbered slot variants (n1, n2, n3 → number_list) during extraction")
+    parser.add_argument("--normalize-existing", action="store_true",
+                        help="Run slot normalization on existing templates.json and options.json, "
+                             "then save the updated files and exit")
 
     args = parser.parse_args()
 
@@ -1977,6 +2382,59 @@ examples:
         taxonomy = json.load(f)
 
     output_path = Path(args.output) if args.output else GENERATED_PATH
+
+    # ── Normalize existing templates/options ─────────────────────────
+    if args.normalize_existing:
+        logger.info("Normalizing existing templates and options…")
+        if not TEMPLATES_PATH.exists() or not OPTIONS_PATH.exists():
+            logger.error("templates.json or options.json not found. Nothing to normalize.")
+            sys.exit(1)
+
+        with open(TEMPLATES_PATH) as f:
+            raw_templates = json.load(f)
+        with open(OPTIONS_PATH) as f:
+            raw_options = json.load(f)
+
+        n_templates_before = len(raw_templates)
+        n_options_before = len(raw_options)
+
+        raw_templates, raw_options = _normalize_slot_names(raw_templates, raw_options)
+        _detect_self_replicating_slots(raw_options, raw_templates)
+        # Always merge numbered slots when normalizing existing data
+        # (join_values=False: rename slots but keep option values individual)
+        raw_templates, raw_options = _merge_numbered_slots(
+            raw_templates, raw_options, join_values=False,
+        )
+        # Sync slot lists with actual placeholders in template text
+        raw_templates = _sync_template_slots(raw_templates)
+        # Remove options with unresolved placeholder values
+        raw_options = _remove_broken_options(raw_options)
+        # Deduplicate templates with identical text
+        raw_templates, raw_options = _deduplicate_templates(
+            raw_templates, raw_options,
+        )
+        # Remove orphaned options (slot not in any template) and empty values
+        raw_options = _remove_orphaned_options(raw_options, raw_templates)
+        # Deduplicate options with same (slot, value)
+        raw_options = _deduplicate_options(raw_options)
+
+        # Rebuild IDs after normalization (slot names may have changed)
+        for t in raw_templates:
+            t["id"] = _template_id(t.get("task_type", ""), t.get("text", ""))
+        for o in raw_options:
+            o["id"] = _option_id(o.get("slot", ""), o.get("value", ""))
+
+        with open(TEMPLATES_PATH, "w") as f:
+            json.dump(raw_templates, f, indent=2, ensure_ascii=False)
+        with open(OPTIONS_PATH, "w") as f:
+            json.dump(raw_options, f, indent=2, ensure_ascii=False)
+
+        logger.info(
+            f"  Normalized: {n_templates_before} templates, {n_options_before} options → "
+            f"{len(raw_templates)} templates, {len(raw_options)} options"
+        )
+        logger.info(f"  Saved → {TEMPLATES_PATH}, {OPTIONS_PATH}")
+        return
 
     if args.test:
         logger.info("*** TEST MODE — 2 prompts per dataset, 5 generated prompts ***")
