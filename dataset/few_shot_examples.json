@@ -1,0 +1,161 @@
+[
+    {
+        "role": "user",
+        "content": (
+            'Taxonomy labels: ["creative_writing", "email", "number_words", '
+            '"keyword_inclusion", "no_commas", "summarization", "question_answering", '
+            '"number_sentences", "all_lowercase"]\n\n'
+            "Prompt:\n"
+            '"Write a long email template that invites a group of participants to a meeting, '
+            'with at least 500 words. The email must include the keywords "correlated" '
+            'and "experiencing" and should not use any commas."'
+        ),
+    },
+    {
+        "role": "assistant",
+        "content": json.dumps(
+            {
+                "templates": [
+                    {
+                        "text": "Write {description}",
+                        "slots": ["description"],
+                        "task_type": "email",
+                        "level": "content_task",
+                    },
+                    {
+                        "text": "with at least {n} words",
+                        "slots": ["n"],
+                        "task_type": "number_words",
+                        "level": "format",
+                    },
+                    {
+                        "text": 'The {document_type} must include the keywords {keywords}',
+                        "slots": ["document_type", "keywords"],
+                        "task_type": "keyword_inclusion",
+                        "level": "content_constraint",
+                    },
+                    {
+                        "text": "should not use any {punctuation}",
+                        "slots": ["punctuation"],
+                        "task_type": "no_commas",
+                        "level": "content_constraint",
+                    },
+                ],
+                "options": [
+                    {
+                        "value": "a long email template that invites a group of participants to a meeting",
+                        "slot": "description",
+                        "compatible_task_types": [
+                            "email",
+                            "creative_writing",
+                        ],
+                    },
+                    {
+                        "value": "500",
+                        "slot": "n",
+                        "compatible_task_types": [
+                            "number_words",
+                            "number_sentences",
+                            "number_paragraphs",
+                        ],
+                    },
+                    {
+                        "value": "email",
+                        "slot": "document_type",
+                        "compatible_task_types": [
+                            "keyword_inclusion",
+                            "keyword_frequency",
+                        ],
+                    },
+                    {
+                        "value": '"correlated" and "experiencing"',
+                        "slot": "keywords",
+                        "compatible_task_types": [
+                            "keyword_inclusion",
+                            "keyword_frequency",
+                        ],
+                    },
+                    {
+                        "value": "commas",
+                        "slot": "punctuation",
+                        "compatible_task_types": [
+                            "no_commas",
+                            "punctuation_or_token_exclusion",
+                        ],
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    },
+    {
+        "role": "user",
+        "content": (
+            'Taxonomy labels: ["question_answering", "number_sentences", '
+            '"all_lowercase", "end_checker", "summarization", "explanation"]\n\n'
+            "Prompt:\n"
+            '"Explain how photosynthesis works in exactly 5 sentences. Write '
+            "everything in lowercase. End your response with the exact phrase: "
+            '"that is all."'
+        ),
+    },
+    {
+        "role": "assistant",
+        "content": json.dumps(
+            {
+                "templates": [
+                    {
+                        "text": "Explain {topic}",
+                        "slots": ["topic"],
+                        "task_type": "explanation",
+                        "level": "content_task",
+                    },
+                    {
+                        "text": "in exactly {n} sentences",
+                        "slots": ["n"],
+                        "task_type": "number_sentences",
+                        "level": "format",
+                    },
+                    {
+                        "text": "Write everything in lowercase",
+                        "slots": [],
+                        "task_type": "all_lowercase",
+                        "level": "style",
+                    },
+                    {
+                        "text": 'End your response with the exact phrase: "{phrase}"',
+                        "slots": ["phrase"],
+                        "task_type": "end_checker",
+                        "level": "style",
+                    },
+                ],
+                "options": [
+                    {
+                        "value": "how photosynthesis works",
+                        "slot": "topic",
+                        "compatible_task_types": [
+                            "explanation",
+                            "question_answering",
+                            "summarization",
+                        ],
+                    },
+                    {
+                        "value": "5",
+                        "slot": "n",
+                        "compatible_task_types": [
+                            "number_sentences",
+                            "number_words",
+                            "number_paragraphs",
+                        ],
+                    },
+                    {
+                        "value": "that is all",
+                        "slot": "phrase",
+                        "compatible_task_types": ["end_checker"],
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    },
+]

@@ -1,0 +1,15 @@
+{
+  "unique_combos": 5,
+  "task_usage": {
+    "subject": 1,
+    "open_ended_qa": 1,
+    "text_completion": 1,
+    "commonsense_reasoning": 1,
+    "code_generation": 1
+  },
+  "constraint_usage": {
+    "no_commas": 4,
+    "casing_constraint": 3,
+    "forbidden_content": 3
+  }
+}

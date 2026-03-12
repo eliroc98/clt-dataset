@@ -76,6 +76,7 @@ TAXONOMY_PATH = OUTPUT_DIR / "taxonomy" / "taxonomy.json"
 TEMPLATES_PATH = OUTPUT_DIR / "templates.json"
 OPTIONS_PATH = OUTPUT_DIR / "options.json"
 GENERATED_PATH = OUTPUT_DIR / "constructed_prompts.jsonl"
+FEW_SHOT_EXAMPLES_PATH = OUTPUT_DIR / "few_shot_examples.json"
 
 # Taxonomy levels
 LEVELS = ("content_task", "format", "style", "content_constraint", "meta")
@@ -315,9 +316,8 @@ Each option object has:
 Rules:
 - A single prompt may contain MULTIPLE templates (e.g. a task + several constraints).
 - Templates should be GENERAL: replace specific values with {slot} placeholders.
-- You will see prompts with a text explaining something and then a question about it. For example,
-    "George wants to warm his hands quickly by rubbing them. Which skin surface will produce the most heat?\n{\"text\": [\"dry palms\", \"wet palms\", \"palms covered with oil\", \"palms covered with lotion\"], \"label\": [\"A\", \"B\", \"C\", \"D\"]}"
-    In this case, the template just have the question mark and the A. B. C. D.. Everything else should be an option. So the template would be "{question}? A.{option} B.{option} C.{option} D.{option}" and the options would be "dry palms", "wet palms", "palms covered with oil", "palms covered with lotion", while the questio is "George wants to warm his hands quickly by rubbing them. Which skin surface will produce the most heat
+- The exemplars given are just flawed examples — do not copy them verbatim. Focus on the underlying principles.
+- slot names should be generic and descriptive (e.g. "option_content", "n", "keywords") — not tied to the specific prompt.
 - Options should be the SPECIFIC values removed from the prompt.
 - An option may be compatible with MULTIPLE task types — list all plausible ones.
 - Use the taxonomy labels provided; do not invent new ones.
@@ -487,14 +487,112 @@ _EXTRACTION_FEW_SHOT = [
 ]
 
 
-def _build_extraction_messages(
-    prompt: str, taxonomy_labels: list[str]
+# ── Dataset-specific few-shot loading ──────────────────────────────────
+
+_dataset_few_shots_cache: dict[str, list[dict]] | None = None
+
+
+def _load_dataset_few_shots() -> dict[str, list[dict]]:
+    """
+    Load dataset-specific few-shot examples from ``few_shot_examples.json``.
+
+    The file is created by ``annotate_few_shot.py`` and has the structure::
+
+        {
+          "IFEval": [
+            {"prompt": "...", "annotation": {"templates": [...], "options": [...]}},
+            ...
+          ],
+          ...
+        }
+
+    Returns an empty dict if the file does not exist or cannot be parsed.
+    """
+    global _dataset_few_shots_cache
+    if _dataset_few_shots_cache is not None:
+        return _dataset_few_shots_cache
+
+    if not FEW_SHOT_EXAMPLES_PATH.exists():
+        _dataset_few_shots_cache = {}
+        return _dataset_few_shots_cache
+
+    try:
+        with open(FEW_SHOT_EXAMPLES_PATH) as fh:
+            data = json.load(fh)
+        if not isinstance(data, dict):
+            raise ValueError("Expected a JSON object at the top level")
+        _dataset_few_shots_cache = data
+        logger.info(
+            f"  Loaded dataset-specific few-shot examples for "
+            f"{list(data.keys())} from {FEW_SHOT_EXAMPLES_PATH}"
+        )
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.warning(
+            f"  Could not load {FEW_SHOT_EXAMPLES_PATH}: {exc}. "
+            "Falling back to generic few-shot examples."
+        )
+        _dataset_few_shots_cache = {}
+
+    return _dataset_few_shots_cache
+
+
+def _get_few_shot_messages(
+    dataset_name: str | None,
+    taxonomy_labels: list[str],
 ) -> list[dict[str, str]]:
-    """Build the chat messages for one LLM extraction call."""
+    """
+    Return the few-shot turns to inject into the extraction prompt.
+
+    If *dataset_name* is given and the ``few_shot_examples.json`` file
+    contains entries for that dataset, those are used (rendered on-the-fly
+    with the current taxonomy labels).  Otherwise falls back to the
+    built-in ``_EXTRACTION_FEW_SHOT``.
+    """
+    if dataset_name:
+        store = _load_dataset_few_shots()
+        examples = store.get(dataset_name, [])
+        if examples:
+            labels_str = json.dumps(taxonomy_labels)
+            messages: list[dict[str, str]] = []
+            for ex in examples:
+                prompt_text = ex.get("prompt", "")
+                annotation  = ex.get("annotation", {})
+                if not prompt_text or not annotation:
+                    continue
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        f"Taxonomy labels: {labels_str}\n\n"
+                        f"Prompt:\n\"{prompt_text}\""
+                    ),
+                })
+                messages.append({
+                    "role": "assistant",
+                    "content": json.dumps(annotation, ensure_ascii=False),
+                })
+            if messages:
+                return messages
+
+    # Default: built-in generic examples
+    return _EXTRACTION_FEW_SHOT
+
+
+def _build_extraction_messages(
+    prompt: str,
+    taxonomy_labels: list[str],
+    dataset_name: str | None = None,
+) -> list[dict[str, str]]:
+    """Build the chat messages for one LLM extraction call.
+
+    When *dataset_name* is provided and matching examples exist in
+    ``few_shot_examples.json``, those dataset-specific examples are used
+    instead of the generic ``_EXTRACTION_FEW_SHOT``.
+    """
     labels_str = json.dumps(taxonomy_labels)
+    few_shot = _get_few_shot_messages(dataset_name, taxonomy_labels)
     return [
         {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
-        *_EXTRACTION_FEW_SHOT,
+        *few_shot,
         {
             "role": "user",
             "content": (
@@ -750,6 +848,7 @@ def extract_templates_from_prompt_llm(
     *,
     model: str = "meta-llama/Llama-3.1-8B-Instruct",
     device: str | None = None,
+    dataset_name: str | None = None,
 ) -> tuple[list[TaskTemplate], list[Option]]:
     """
     Decompose a single prompt into task templates and options using a local
@@ -757,9 +856,15 @@ def extract_templates_from_prompt_llm(
 
     The model receives a few-shot prompt with the full taxonomy label list
     and returns structured JSON.
+
+    Parameters
+    ----------
+    dataset_name
+        If given, dataset-specific few-shot examples from
+        ``few_shot_examples.json`` are used instead of the generic ones.
     """
     taxonomy_labels = list(taxonomy.keys())
-    messages = _build_extraction_messages(prompt, taxonomy_labels)
+    messages = _build_extraction_messages(prompt, taxonomy_labels, dataset_name)
 
     try:
         raw = _call_llm(
@@ -811,7 +916,9 @@ def extract_templates_from_dataset(
     Extract templates and options from a list of prompt records via a local
     HuggingFace model.
 
-    Each record should have at least a ``"prompt"`` field.
+    Each record should have at least a ``"prompt"`` field.  An optional
+    ``"source"`` field ( = dataset name) enables dataset-specific few-shot
+    examples when ``few_shot_examples.json`` contains entries for that dataset.
     Results are de-duplicated and compatibility info is merged.
     When ``batch_size > 1`` multiple prompts are processed in a single
     batched forward pass (much faster on GPU).
@@ -832,7 +939,11 @@ def extract_templates_from_dataset(
             # Single-item path – avoids padding overhead
             try:
                 raw = _call_llm(
-                    _build_extraction_messages(batch[0]["prompt"], taxonomy_labels),
+                    _build_extraction_messages(
+                        batch[0]["prompt"],
+                        taxonomy_labels,
+                        dataset_name=batch[0].get("source"),
+                    ),
                     model=model,
                     temperature=0.0,
                     device=device,
@@ -848,7 +959,11 @@ def extract_templates_from_dataset(
             _merge_into_store(all_templates, all_options, tmpls, opts)
         else:
             batch_msgs = [
-                _build_extraction_messages(r["prompt"], taxonomy_labels)
+                _build_extraction_messages(
+                    r["prompt"],
+                    taxonomy_labels,
+                    dataset_name=r.get("source"),
+                )
                 for r in batch
             ]
             try:
@@ -1880,7 +1995,7 @@ examples:
             test=args.test,
             batch_size=args.batch_size,
         )
-        #run_augmentation(store, seed=args.seed)
+        run_augmentation(store, seed=args.seed)
         store.save()
     else:
         store = TemplateStore.load()
