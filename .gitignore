@@ -27,3 +27,5 @@ dataset/output/constructed_prompts.jsonl
 
 dataset/old_construct_dataset.py
 .python-version
+
+dataset/output/old
