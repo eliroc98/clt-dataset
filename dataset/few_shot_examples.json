@@ -8,7 +8,7 @@
             "text": "{context}. {question}?\n{\"text\": [{options}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
             "slots": ["context", "question", "options"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -38,7 +38,7 @@
             "text": "{context}. {question}?\n{\"text\": [{options}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
             "slots": ["context", "question", "options"],
             "task_type": "commonsense_reasoning",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -68,7 +68,7 @@
             "text": "{context}\n{\"text\": [{completions}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
             "slots": ["context", "completions"],
             "task_type": "commonsense_reasoning",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -95,7 +95,7 @@
             "text": "{question}?",
             "slots": ["question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -115,7 +115,7 @@
             "text": "What are {description} in the given {object_type}?\n{object_type}: {object_description}",
             "slots": ["description", "object_type", "object_description"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -145,7 +145,7 @@
             "text": "Estimate {description}.",
             "slots": ["description"],
             "task_type": "prediction",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -167,7 +167,7 @@
             "text": "Write a complete {programming_language} program to {programming_task}.",
             "slots": ["programming_language", "programming_task"],
             "task_type": "code_generation",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -192,7 +192,7 @@
             "text": "explain the following to me like I'm 5 years old: {topic}",
             "slots": ["topic"],
             "task_type": "explanation",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "like I'm {n} years old",
@@ -223,13 +223,13 @@
             "text": "Please rewrite the following pseudo {programming_language} code as an equivalent code that is easier to read (assume that every variable works, even if it's not defined): ```{code}```",
             "slots": ["programming_language", "code"],
             "task_type": "rewriting_paraphrasing",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Please rewrite the following pseudo {programming_language} code as an equivalent code that is easier to read (assume that every variable works, even if it's not defined): ```{code}```",
             "slots": ["programming_language", "code"],
             "task_type": "code_generation",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -256,7 +256,7 @@
             "text": "Q: What {object} does this emoji describe? {emoji}\n  choice: {options}\nA:",
             "slots": ["object", "emoji", "options"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -286,7 +286,7 @@
             "text": "Q: What {object} does this emoji describe? {emoji}\n  choice: {options}\nA:",
             "slots": ["object", "emoji", "options"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -316,7 +316,7 @@
             "text": "Q: What {object} does this emoji describe? {emoji}\nchoice: {options}\nA:",
             "slots": ["object", "emoji", "options"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -348,7 +348,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -373,7 +373,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -398,7 +398,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -425,7 +425,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -450,7 +450,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -475,7 +475,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -502,7 +502,7 @@
             "text": "Why {question}",
             "slots": ["question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -522,7 +522,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -547,7 +547,7 @@
             "text": "Why {topic}",
             "slots": ["topic"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -569,7 +569,7 @@
             "text": "{email}\nPropose a subject line for this email?",
             "slots": ["email"],
             "task_type": "communication_writing",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -589,7 +589,7 @@
             "text": "Write an email with the following subject:\n\n{topic}",
             "slots": ["topic"],
             "task_type": "communication_writing",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -609,7 +609,7 @@
             "text": "{email}\n\nGenerate a subject line for this email.",
             "slots": ["email"],
             "task_type": "communication_writing",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -631,19 +631,19 @@
             "text": "Analyze the provided text to ascertain both the category and the sentiment (positive, neutral, or negative) it embodies. Select the category from this array: {categories}. {text}",
             "slots": ["categories", "text"],
             "task_type": "classification",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Additionally, conduct named entity recognition to emphasize important entities and establish the central theme. {text}",
             "slots": ["text"],
             "task_type": "information_extraction",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Moreover, undertake keyword extraction to mark prominent words, and engage in coreference resolution to identify references of the same entity within the text. {text}",
             "slots": ["text"],
             "task_type": "information_extraction",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -668,7 +668,7 @@
             "text": "What, in the view of {person}, {question}? Additionally, {follow_up}, incorporating one relevant case study for context.",
             "slots": ["person", "question", "follow_up"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -698,7 +698,7 @@
             "text": "What, according to {person}, {question}, while also analyzing {follow_up}?",
             "slots": ["person", "question", "follow_up"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -730,7 +730,7 @@
             "text": "{context}. How much {question}?",
             "slots": ["context", "question"],
             "task_type": "mathematical_reasoning",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -755,7 +755,7 @@
             "text": "{context}. How many {question} {time}?",
             "slots": ["context", "question", "time"],
             "task_type": "mathematical_reasoning",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -785,7 +785,7 @@
             "text": "{context}. How much did she earn?",
             "slots": ["context"],
             "task_type": "mathematical_reasoning",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -807,7 +807,7 @@
             "text": "{question}?",
             "slots": ["question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Think out loud, then answer with one of the following options: {options}",
@@ -838,7 +838,7 @@
             "text": "Which one is {criterion}: {options}?",
             "slots": ["criterion", "options"],
             "task_type": "ranking_comparison",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Your entire response should be in {language}, and in all capital letters.",
@@ -902,7 +902,7 @@
             "text": "Write a description for the {topic}",
             "slots": ["topic"],
             "task_type": "explanation",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "with at least {n} words",
@@ -961,7 +961,7 @@
             "text": "excluding the option that answers the question correctly, print a sorted list (ascending order) of the incorrect options.",
             "slots": [],
             "task_type": "ranking_comparison",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Do not print the option labels. Use the text associated with the option labels and not the option labels while sorting and printing.",
@@ -1003,7 +1003,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1028,7 +1028,7 @@
             "text": "{question}\n{source}",
             "slots": ["question", "source"],
             "task_type": "data_analysis",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1053,7 +1053,7 @@
             "text": "Explain {topic}.\n{context}",
             "slots": ["topic", "context"],
             "task_type": "explanation",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1080,7 +1080,7 @@
             "text": "Given the following passage\n\n\"{passage}\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: {question}?",
             "slots": ["passage", "question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1105,7 +1105,7 @@
             "text": "Given the following passage\n\n\"{passage}\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: {question}?",
             "slots": ["passage", "question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1132,7 +1132,7 @@
             "text": "{context}. {question}?\n{source}",
             "slots": ["context", "question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1162,7 +1162,7 @@
             "text": "{object} is a type of what?\n{source}",
             "slots": ["object", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1187,7 +1187,7 @@
             "text": "What {question}?\n{source}",
             "slots": ["question", "source"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1214,7 +1214,7 @@
             "text": "Given an array of integers, find two integers that sum up to a specific target integer.\n\n[{number_list}]\nTarget: {n}",
             "slots": ["number_list", "n"],
             "task_type": "mathematical_reasoning",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1239,7 +1239,7 @@
             "text": "Given a list of numbers, find out if they are prime or not. you can answer \"prime\" or \"not prime\".\n\nInput: List: {number_list}\n\nOutput:",
             "slots": ["number_list"],
             "task_type": "mathematical_reasoning",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1259,7 +1259,7 @@
             "text": "What would you do if you won ${n} in {context}?\nOutput:",
             "slots": ["n", "context"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1286,7 +1286,7 @@
             "text": "In which decade did {question}?",
             "slots": ["question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1306,7 +1306,7 @@
             "text": "Which {person_name} wrote {work}?",
             "slots": ["person_name", "work"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1331,7 +1331,7 @@
             "text": "How is {person_type} {person} better known?",
             "slots": ["person_type", "person"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1358,13 +1358,13 @@
             "text": "In what ways can you {question}?",
             "slots": ["question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Moreover, how can you {follow_up}?",
             "slots": ["follow_up"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1389,19 +1389,19 @@
             "text": "How can we develop a {programming_language} program that {programming_task}?",
             "slots": ["programming_language", "programming_task"],
             "task_type": "code_generation",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Specifically, how can {question}?",
             "slots": ["question"],
             "task_type": "question_answering",
-            "level": "content_task"
+            "level": "task_type"
           },
           {
             "text": "Additionally, how can we use {programming_language} to generate an outline for {text_type} on {topic}?",
             "slots": ["programming_language", "text_type", "topic"],
             "task_type": "code_generation",
-            "level": "content_task"
+            "level": "task_type"
           }
         ],
         "options": [
@@ -1429,6 +1429,170 @@
             "value": "the importance of effective communication in relationships, taking into account the role of cultural diversity",
             "slot": "topic",
             "compatible_task_types": ["code_generation", "creative_writing", "planning"]
+          }
+        ]
+      }
+    }
+  ],
+  "WildIFEval": [
+    {
+      "prompt": "Create 10 questions from the text.\nCreate corresponding answers for each question.\nFormat the output in a table with columns \"Questions\" and \"Answers\".",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Create {n} questions from the {source}.",
+            "slots": ["n", "source"],
+            "task_type": "question_answering",
+            "level": "task_type"
+          },
+          {
+            "text": "Create corresponding {output_type} for each question.",
+            "slots": ["output_type"],
+            "task_type": "question_answering",
+            "level": "task_type"
+          },
+          {
+            "text": "Format the output in a {format_type} with columns {columns}.",
+            "slots": ["format_type", "columns"],
+            "task_type": "structure_constraint",
+            "level": "format_constraint"
+          }
+        ],
+        "options": [
+          {
+            "value": "10",
+            "slot": "n",
+            "compatible_task_types": ["question_answering", "creative_writing", "brainstorming"]
+          },
+          {
+            "value": "text",
+            "slot": "source",
+            "compatible_task_types": ["question_answering", "summarization", "information_extraction"]
+          },
+          {
+            "value": "answers",
+            "slot": "output_type",
+            "compatible_task_types": ["question_answering"]
+          },
+          {
+            "value": "table",
+            "slot": "format_type",
+            "compatible_task_types": ["question_answering", "data_analysis", "information_extraction"]
+          },
+          {
+            "value": "\"Questions\" and \"Answers\"",
+            "slot": "columns",
+            "compatible_task_types": ["question_answering", "data_analysis"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Role-play as \"Eve,\" a super smart computer scientist with sass.\nEnsure the response is funny and a bit edgy like banter between friends.\nYou can make controversial remarks.\nUse a maximum of 50 characters per answer.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Role-play as \"{persona},\" a {persona_description}.",
+            "slots": ["persona", "persona_description"],
+            "task_type": "role_playing",
+            "level": "task_type"
+          },
+          {
+            "text": "Ensure the response is {tone_description}.",
+            "slots": ["tone_description"],
+            "task_type": "tone_constraint",
+            "level": "content_style_constraint"
+          },
+          {
+            "text": "You can make {content_allowance}.",
+            "slots": ["content_allowance"],
+            "task_type": "topic_scope",
+            "level": "content_style_constraint"
+          },
+          {
+            "text": "Use a maximum of {n} characters per answer.",
+            "slots": ["n"],
+            "task_type": "length_constraint",
+            "level": "format_constraint"
+          }
+        ],
+        "options": [
+          {
+            "value": "Eve",
+            "slot": "persona",
+            "compatible_task_types": ["role_playing", "dialogue_generation"]
+          },
+          {
+            "value": "super smart computer scientist with sass",
+            "slot": "persona_description",
+            "compatible_task_types": ["role_playing", "dialogue_generation"]
+          },
+          {
+            "value": "funny and a bit edgy like banter between friends",
+            "slot": "tone_description",
+            "compatible_task_types": ["role_playing", "creative_writing", "dialogue_generation"]
+          },
+          {
+            "value": "controversial remarks",
+            "slot": "content_allowance",
+            "compatible_task_types": ["role_playing", "dialogue_generation"]
+          },
+          {
+            "value": "50",
+            "slot": "n",
+            "compatible_task_types": ["role_playing", "creative_writing", "question_answering"]
+          }
+        ]
+      }
+    },
+    {
+      "prompt": "Include temperature in Celsius.\nMention hydrometry rate in percentage.\nProvide rainfall in millimeters.\nInclude humidity rate in percentage.\nIdentify soil type.\nSpecify type of climate.\nAnswers should be two words and in numerical format where applicable.",
+      "annotation": {
+        "templates": [
+          {
+            "text": "Include {metric} in {unit}.",
+            "slots": ["metric", "unit"],
+            "task_type": "keyword_inclusion",
+            "level": "content_style_constraint"
+          },
+          {
+            "text": "Identify {attribute}.",
+            "slots": ["attribute"],
+            "task_type": "information_extraction",
+            "level": "task_type"
+          },
+          {
+            "text": "Answers should be {length_constraint} and in {format_requirement} where applicable.",
+            "slots": ["length_constraint", "format_requirement"],
+            "task_type": "output_syntax_format",
+            "level": "format_constraint"
+          }
+        ],
+        "options": [
+          {
+            "value": "temperature",
+            "slot": "metric",
+            "compatible_task_types": ["information_extraction", "data_analysis", "question_answering"]
+          },
+          {
+            "value": "Celsius",
+            "slot": "unit",
+            "compatible_task_types": ["information_extraction", "data_analysis", "question_answering"]
+          },
+          {
+            "value": "soil type",
+            "slot": "attribute",
+            "compatible_task_types": ["information_extraction", "question_answering"]
+          },
+          {
+            "value": "two words",
+            "slot": "length_constraint",
+            "compatible_task_types": ["question_answering", "information_extraction", "creative_writing"]
+          },
+          {
+            "value": "numerical format",
+            "slot": "format_requirement",
+            "compatible_task_types": ["data_analysis", "information_extraction", "question_answering"]
           }
         ]
       }

@@ -1201,6 +1201,13 @@ DATASET_REGISTRY: dict[str, dict[str, Any]] = {
         "category_field": "operation",
         "sample_size": 5000,
     },
+    "WildIFEval": {
+        "source": "huggingface",
+        "hf_path": "gililior/wild-if-eval",
+        "hf_split": "test",
+        "instruction_fields": ["decomposition"],
+        "sample_size": 3000,
+    },
 }
 
 

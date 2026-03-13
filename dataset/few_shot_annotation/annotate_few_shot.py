@@ -97,7 +97,7 @@ RED    = "\033[31m"
 RESET  = "\033[0m"
 DIM    = "\033[2m"
 
-LEVELS = ("content_task", "format", "style", "content_constraint", "meta")
+LEVELS = ("task_type", "format_constraint", "content_style_constraint", "process_directive")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -213,7 +213,7 @@ def _suggest_task_types(
                 if task_name in scored:
                     scored[task_name]["score"] += 1
                 else:
-                    lvl = taxonomy[task_name].level if task_name in taxonomy else "content_task"
+                    lvl = taxonomy[task_name].level if task_name in taxonomy else "task_type"
                     scored[task_name] = {"name": task_name, "level": lvl, "score": 1, "source": "verb"}
     except Exception:
         pass
@@ -465,6 +465,33 @@ def _save(data: dict[str, list[dict]], path: Path) -> None:
         json.dump(data, fh, indent=2, ensure_ascii=False)
 
 
+# ── Taxonomy helpers ──────────────────────────────────────────────────────
+
+def _iter_taxonomy_leaves(taxonomy_data: dict):
+    """Yield (name, info_dict) for every leaf entry in the taxonomy."""
+    for key, val in taxonomy_data.items():
+        if key == "_meta" or not isinstance(val, dict):
+            continue
+        if "level" in val:
+            # Direct leaf (e.g. process_directive entries)
+            yield key, val
+        else:
+            # Nested group (e.g. task_type → {question_answering: {...}, ...})
+            for sub_key, sub_val in val.items():
+                if isinstance(sub_val, dict) and "level" in sub_val:
+                    yield sub_key, sub_val
+                elif isinstance(sub_val, dict):
+                    # Two levels deep (e.g. content_style_constraint → lexical_constraints → ...)
+                    for leaf_key, leaf_val in sub_val.items():
+                        if isinstance(leaf_val, dict) and "level" in leaf_val:
+                            yield leaf_key, leaf_val
+
+
+def _flat_taxonomy_labels(taxonomy_data: dict) -> list[str]:
+    """Return a flat list of all leaf task/constraint labels from the taxonomy."""
+    return [name for name, _ in _iter_taxonomy_leaves(taxonomy_data)]
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Main annotation loop
 # ═══════════════════════════════════════════════════════════════════════════
@@ -482,15 +509,15 @@ def run(
     taxonomy: Taxonomy | None = None
     if TAXONOMY_PATH.exists():
         with open(TAXONOMY_PATH) as fh:
-            taxonomy_labels = list(json.load(fh).keys())
+            taxonomy_data = json.load(fh)
+        # Flatten nested taxonomy structure to get leaf task-type labels
+        taxonomy_labels = _flat_taxonomy_labels(taxonomy_data)
         # Build a Taxonomy instance for suggestion engine
         taxonomy = Taxonomy()
         try:
-            saved = json.loads(TAXONOMY_PATH.read_text())
-            for name, info in saved.items():
-                lvl = info.get("level", "content_task")
+            for name, info in _iter_taxonomy_leaves(taxonomy_data):
+                lvl = info.get("level", "task_type")
                 if name not in taxonomy:
-                    # Create with a name-derived pattern so detect() works
                     name_pat = name.replace("_", r"[\s_]")
                     pat = re.compile(rf"\b{name_pat}\b", re.I)
                     entry = taxonomy.get_or_create(name, lvl)
