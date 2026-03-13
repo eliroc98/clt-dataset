@@ -6,7 +6,11 @@
         "templates": [
           {
             "text": "{context}. {question}?\n{\"text\": [{options}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
-            "slots": ["context", "question", "options"],
+            "slots": [
+              "context",
+              "question",
+              "options"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -15,17 +19,25 @@
           {
             "value": "Photosynthesis is a process involving carbon dioxide, water, glucose, oxygen, and sunlight",
             "slot": "context",
-            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+            "compatible_task_types": [
+              "question_answering",
+              "commonsense_reasoning"
+            ]
           },
           {
             "value": "Which is the correct chemical equation for photosynthesis",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+            "compatible_task_types": [
+              "question_answering",
+              "commonsense_reasoning"
+            ]
           },
           {
             "value": "\"O_{2} + H_{2}O + energy -> C_{6}H_{12}O_{6} + CO_{2}\", \"CO_{2} + H_{2}O -> C_{6}H_{6}O_{3} + O_{2} + energy\", \"6O_{2} + 6H_{2}O -> C_{6}H_{12}O_{6} + 6CO_{2} + energy\", \"6CO_{2} + 6H_{2}O + energy -> C_{6}H_{12}O_{6} + 6O_{2}\"",
             "slot": "options",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -36,7 +48,11 @@
         "templates": [
           {
             "text": "{context}. {question}?\n{\"text\": [{options}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
-            "slots": ["context", "question", "options"],
+            "slots": [
+              "context",
+              "question",
+              "options"
+            ],
             "task_type": "commonsense_reasoning",
             "level": "task_type"
           }
@@ -45,17 +61,26 @@
           {
             "value": "A boat is acted on by a river current flowing north and by wind blowing on its sails. The boat travels northeast.",
             "slot": "context",
-            "compatible_task_types": ["commonsense_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "commonsense_reasoning",
+              "question_answering"
+            ]
           },
           {
             "value": "In which direction is the wind most likely applying force to the sails of the boat",
             "slot": "question",
-            "compatible_task_types": ["commonsense_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "commonsense_reasoning",
+              "question_answering"
+            ]
           },
           {
             "value": "\"west\", \"east\", \"north\", \"south\"",
             "slot": "options",
-            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+            "compatible_task_types": [
+              "question_answering",
+              "commonsense_reasoning"
+            ]
           }
         ]
       }
@@ -66,7 +91,10 @@
         "templates": [
           {
             "text": "{context}\n{\"text\": [{completions}], \"label\": [\"A\", \"B\", \"C\", \"D\"]}",
-            "slots": ["context", "completions"],
+            "slots": [
+              "context",
+              "completions"
+            ],
             "task_type": "commonsense_reasoning",
             "level": "task_type"
           }
@@ -75,12 +103,18 @@
           {
             "value": "A fold observed in layers of sedimentary rock most likely resulted from the",
             "slot": "context",
-            "compatible_task_types": ["commonsense_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "commonsense_reasoning",
+              "question_answering"
+            ]
           },
           {
             "value": "\"cooling of flowing magma.\", \"converging of crustal plates.\", \"deposition of river sediments.\", \"solution of carbonate minerals.\"",
             "slot": "completions",
-            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+            "compatible_task_types": [
+              "question_answering",
+              "commonsense_reasoning"
+            ]
           }
         ]
       }
@@ -93,7 +127,9 @@
         "templates": [
           {
             "text": "{question}?",
-            "slots": ["question"],
+            "slots": [
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -102,7 +138,9 @@
           {
             "value": "Which US state has the second smallest population",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -113,7 +151,11 @@
         "templates": [
           {
             "text": "What are {description} in the given {object_type}?\n{object_type}: {object_description}",
-            "slots": ["description", "object_type", "object_description"],
+            "slots": [
+              "description",
+              "object_type",
+              "object_description"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -122,17 +164,24 @@
           {
             "value": "two contrasting elements",
             "slot": "description",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "painting",
             "slot": "object_type",
-            "compatible_task_types": ["question_answering", "data_analysis"]
+            "compatible_task_types": [
+              "question_answering",
+              "data_analysis"
+            ]
           },
           {
             "value": "The Starry Night by Vincent van Gogh",
             "slot": "object_description",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -143,7 +192,9 @@
         "templates": [
           {
             "text": "Estimate {description}.",
-            "slots": ["description"],
+            "slots": [
+              "description"
+            ],
             "task_type": "prediction",
             "level": "task_type"
           }
@@ -152,7 +203,11 @@
           {
             "value": "the total cost of a cross-country road trip from Los Angeles to New York",
             "slot": "description",
-            "compatible_task_types": ["prediction", "question_answering", "mathematical_reasoning"]
+            "compatible_task_types": [
+              "prediction",
+              "question_answering",
+              "mathematical_reasoning"
+            ]
           }
         ]
       }
@@ -165,7 +220,10 @@
         "templates": [
           {
             "text": "Write a complete {programming_language} program to {programming_task}.",
-            "slots": ["programming_language", "programming_task"],
+            "slots": [
+              "programming_language",
+              "programming_task"
+            ],
             "task_type": "code_generation",
             "level": "task_type"
           }
@@ -174,12 +232,16 @@
           {
             "value": "Python",
             "slot": "programming_language",
-            "compatible_task_types": ["code_generation"]
+            "compatible_task_types": [
+              "code_generation"
+            ]
           },
           {
             "value": "archive files in a specified folder into separate zip files on Linux",
             "slot": "programming_task",
-            "compatible_task_types": ["code_generation"]
+            "compatible_task_types": [
+              "code_generation"
+            ]
           }
         ]
       }
@@ -190,13 +252,17 @@
         "templates": [
           {
             "text": "explain the following to me like I'm 5 years old: {topic}",
-            "slots": ["topic"],
+            "slots": [
+              "topic"
+            ],
             "task_type": "explanation",
             "level": "task_type"
           },
           {
-            "text": "like I'm {n} years old",
-            "slots": ["n"],
+            "text": "like I'm {number} years old",
+            "slots": [
+              "number"
+            ],
             "task_type": "audience_constraint",
             "level": "content_style_constraint"
           }
@@ -205,12 +271,17 @@
           {
             "value": "what is a PayFac model in integrated payments and how does this differ from what a normal merchant acquirer provides",
             "slot": "topic",
-            "compatible_task_types": ["explanation", "question_answering"]
+            "compatible_task_types": [
+              "explanation",
+              "question_answering"
+            ]
           },
           {
             "value": "5",
-            "slot": "n",
-            "compatible_task_types": ["audience_constraint"]
+            "slot": "number",
+            "compatible_task_types": [
+              "audience_constraint"
+            ]
           }
         ]
       }
@@ -221,13 +292,19 @@
         "templates": [
           {
             "text": "Please rewrite the following pseudo {programming_language} code as an equivalent code that is easier to read (assume that every variable works, even if it's not defined): ```{code}```",
-            "slots": ["programming_language", "code"],
+            "slots": [
+              "programming_language",
+              "code"
+            ],
             "task_type": "rewriting_paraphrasing",
             "level": "task_type"
           },
           {
             "text": "Please rewrite the following pseudo {programming_language} code as an equivalent code that is easier to read (assume that every variable works, even if it's not defined): ```{code}```",
-            "slots": ["programming_language", "code"],
+            "slots": [
+              "programming_language",
+              "code"
+            ],
             "task_type": "code_generation",
             "level": "task_type"
           }
@@ -236,12 +313,18 @@
           {
             "value": "C",
             "slot": "programming_language",
-            "compatible_task_types": ["rewriting_paraphrasing", "code_generation"]
+            "compatible_task_types": [
+              "rewriting_paraphrasing",
+              "code_generation"
+            ]
           },
           {
             "value": "handleCmdLineArgs(char *param_1){  uint uVar2;  uint uVar3;  int iVar4;  char *pcVar5;  char cVar1;    uVar3 = 0xffffffff;  uVar2 = 0;  iVar4 = 0;  pcVar5 = param_1;  do {    if (uVar3 == 0) break;    uVar3 = uVar3 - 1;    cVar1 = *pcVar5;    pcVar5 = pcVar5 + 1;  } while (cVar1 != '\\0');  if (0 < (int)(~uVar3 - 2)) {    do {      uVar2 = RK_CheckSJIS(uVar2 & 0xffffff00 | (uint)(byte)param_1[iVar4]);      if (uVar2 == 1) {        iVar4 = iVar4 + 1;      }      else if (param_1[iVar4] == '/') {        uVar2 = uVar2 & 0xffffff00 | (uint)(byte)param_1[iVar4 + 1] | 0x20;        if ((char)uVar2 == 'w') {          IsWindowedMode = 1;        }        else if ((char)uVar2 == 'f') {          IsWindowedMode = 0;        }      }      iVar4 = iVar4 + 1;    } while (iVar4 < (int)(~uVar3 - 2));  }}",
             "slot": "code",
-            "compatible_task_types": ["rewriting_paraphrasing", "code_generation"]
+            "compatible_task_types": [
+              "rewriting_paraphrasing",
+              "code_generation"
+            ]
           }
         ]
       }
@@ -254,7 +337,11 @@
         "templates": [
           {
             "text": "Q: What {object} does this emoji describe? {emoji}\n  choice: {options}\nA:",
-            "slots": ["object", "emoji", "options"],
+            "slots": [
+              "object",
+              "emoji",
+              "options"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -263,17 +350,24 @@
           {
             "value": "movie",
             "slot": "object",
-            "compatible_task_types": ["question_answering", "classification"]
+            "compatible_task_types": [
+              "question_answering",
+              "classification"
+            ]
           },
           {
             "value": "👦💀🎸",
             "slot": "emoji",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "das boot, underground, mulan, coco, the big sleep",
             "slot": "options",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -284,7 +378,11 @@
         "templates": [
           {
             "text": "Q: What {object} does this emoji describe? {emoji}\n  choice: {options}\nA:",
-            "slots": ["object", "emoji", "options"],
+            "slots": [
+              "object",
+              "emoji",
+              "options"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -293,17 +391,24 @@
           {
             "value": "movie",
             "slot": "object",
-            "compatible_task_types": ["question_answering", "classification"]
+            "compatible_task_types": [
+              "question_answering",
+              "classification"
+            ]
           },
           {
             "value": "👦👴🏠🎈",
             "slot": "emoji",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "gran torino, up, once upon a time in america, dr. strangelove or: how i learned to stop worrying and love the bomb, the 400 blows",
             "slot": "options",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -314,7 +419,11 @@
         "templates": [
           {
             "text": "Q: What {object} does this emoji describe? {emoji}\nchoice: {options}\nA:",
-            "slots": ["object", "emoji", "options"],
+            "slots": [
+              "object",
+              "emoji",
+              "options"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -323,17 +432,24 @@
           {
             "value": "movie",
             "slot": "object",
-            "compatible_task_types": ["question_answering", "classification"]
+            "compatible_task_types": [
+              "question_answering",
+              "classification"
+            ]
           },
           {
             "value": "🛶🦈🏖",
             "slot": "emoji",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "jaws, the wages of fear, joker, citizen kane, slumdog millionaire",
             "slot": "options",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -346,7 +462,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -355,12 +474,16 @@
           {
             "value": "is elder scrolls online the same as skyrim",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "As with other games in The Elder Scrolls series, the game is set on the continent of Tamriel. The events of the game occur a millennium before those of The Elder Scrolls V: Skyrim and around 800 years before The Elder Scrolls III: Morrowind and The Elder Scrolls IV: Oblivion. It has a broadly similar structure to Skyrim, with two separate conflicts progressing at the same time, one with the fate of the world in the balance, and one where the prize is supreme power on Tamriel. In The Elder Scrolls Online, the first struggle is against the Daedric Prince Molag Bal, who is attempting to meld the plane of Mundus with his realm of Coldharbour, and the second is to capture the vacant imperial throne, contested by three alliances of the mortal races. The player character has been sacrificed to Molag Bal, and Molag Bal has stolen their soul, the recovery of which is the primary game objective.",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -371,7 +494,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -380,12 +506,16 @@
           {
             "value": "is windows movie maker part of windows essentials",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "Windows Movie Maker (formerly known as Windows Live Movie Maker in Windows 7) is a discontinued video editing software by Microsoft. It is a part of Windows Essentials software suite and offers the ability to create and edit videos as well as to publish them on OneDrive, Facebook, Vimeo, YouTube, and Flickr.",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -396,7 +526,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -405,12 +538,16 @@
           {
             "value": "did abraham lincoln write the letter in saving private ryan",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "In the 1998 war film Saving Private Ryan, General George Marshall (played by Harve Presnell) reads the Bixby letter to his officers before giving the order to find and send home Private James Francis Ryan after Ryan's three brothers died in battle.",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -423,7 +560,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -432,12 +572,18 @@
           {
             "value": "How many points did the buccaneers need to tie in the first?",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "mathematical_reasoning"]
+            "compatible_task_types": [
+              "question_answering",
+              "mathematical_reasoning"
+            ]
           },
           {
             "value": "To start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
             "slot": "source",
-            "compatible_task_types": ["question_answering", "mathematical_reasoning"]
+            "compatible_task_types": [
+              "question_answering",
+              "mathematical_reasoning"
+            ]
           }
         ]
       }
@@ -448,7 +594,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -457,12 +606,16 @@
           {
             "value": "Who threw the first touchdown pass of the game?",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "To start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -473,7 +626,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -482,12 +638,16 @@
           {
             "value": "Which player scored the first points of the game for Tampa Bay?",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "To start the season, the Lions traveled south to Tampa, Florida to take on the Tampa Bay Buccaneers. The Lions scored first in the first quarter with a 23-yard field goal by Jason Hanson. The Buccaneers tied it up with a 38-yard field goal by Connor Barth, then took the lead when Aqib Talib intercepted a pass from Matthew Stafford and ran it in 28 yards. The Lions responded with a 28-yard field goal. In the second quarter, Detroit took the lead with a 36-yard touchdown catch by Calvin Johnson, and later added more points when Tony Scheffler caught an 11-yard TD pass. Tampa Bay responded with a 31-yard field goal just before halftime. The second half was relatively quiet, with each team only scoring one touchdown. First, Detroit's Calvin Johnson caught a 1-yard pass in the third quarter. The game's final points came when Mike Williams of Tampa Bay caught a 5-yard pass.  The Lions won their regular season opener for the first time since 2007",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -500,7 +660,9 @@
         "templates": [
           {
             "text": "Why {question}",
-            "slots": ["question"],
+            "slots": [
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -509,7 +671,10 @@
           {
             "value": "can camels survive for long without water",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "explanation"]
+            "compatible_task_types": [
+              "question_answering",
+              "explanation"
+            ]
           }
         ]
       }
@@ -520,7 +685,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -529,12 +697,16 @@
           {
             "value": "If I have more pieces at the time of stalemate, have I won",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "Stalemate is a situation in chess where the player whose turn it is to move is not in check and has no legal move. Stalemate results in a draw. During the endgame, stalemate is a resource that can enable the player with the inferior position to draw the game rather than lose. In more complex positions, stalemate is much rarer, usually taking the form of a swindle that succeeds only if the superior side is inattentive.[citation needed] Stalemate is also a common theme in endgame studies and other chess problems.The outcome of a stalemate was standardized as a draw in the 19th century. Before this standardization, its treatment varied widely, including being deemed a win for the stalemating player, a half-win for that player, or a loss for that player; not being permitted; and resulting in the stalemated player missing a turn. Stalemate rules vary in other games of the chess family.",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -545,7 +717,9 @@
         "templates": [
           {
             "text": "Why {topic}",
-            "slots": ["topic"],
+            "slots": [
+              "topic"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -554,7 +728,10 @@
           {
             "value": "mobile is bad for human",
             "slot": "topic",
-            "compatible_task_types": ["question_answering", "argumentation"]
+            "compatible_task_types": [
+              "question_answering",
+              "argumentation"
+            ]
           }
         ]
       }
@@ -567,7 +744,9 @@
         "templates": [
           {
             "text": "{email}\nPropose a subject line for this email?",
-            "slots": ["email"],
+            "slots": [
+              "email"
+            ],
             "task_type": "communication_writing",
             "level": "task_type"
           }
@@ -576,7 +755,10 @@
           {
             "value": "Dear Jared:  Please review the attached drafts of your requested confidentiality agreements with Peoples Gas System, NUI Corporation and Jacksonville Electric Authority. Please advise me or Gerald Nemec about recommended changes. Note to Ned Crady:  Since these CAs involve Enron Global Markets LLC as well as ENA, we would appreciate your review and approval of these documents as well. Thank you,",
             "slot": "email",
-            "compatible_task_types": ["communication_writing", "summarization"]
+            "compatible_task_types": [
+              "communication_writing",
+              "summarization"
+            ]
           }
         ]
       }
@@ -587,7 +769,9 @@
         "templates": [
           {
             "text": "Write an email with the following subject:\n\n{topic}",
-            "slots": ["topic"],
+            "slots": [
+              "topic"
+            ],
             "task_type": "communication_writing",
             "level": "task_type"
           }
@@ -596,7 +780,10 @@
           {
             "value": "Kaiser",
             "slot": "topic",
-            "compatible_task_types": ["communication_writing", "creative_writing"]
+            "compatible_task_types": [
+              "communication_writing",
+              "creative_writing"
+            ]
           }
         ]
       }
@@ -607,7 +794,9 @@
         "templates": [
           {
             "text": "{email}\n\nGenerate a subject line for this email.",
-            "slots": ["email"],
+            "slots": [
+              "email"
+            ],
             "task_type": "communication_writing",
             "level": "task_type"
           }
@@ -616,7 +805,10 @@
           {
             "value": "Gerald,  I wanted to follow up on our on Monday regarding the GTC Point Specific confirmation for Torch Energy. Are you getting close to having something ready for us to send to them? We need to send them something to start reviewing today if at all possible. If you could let me know as soon as possible, I would appreciate it. Thanks,",
             "slot": "email",
-            "compatible_task_types": ["communication_writing", "summarization"]
+            "compatible_task_types": [
+              "communication_writing",
+              "summarization"
+            ]
           }
         ]
       }
@@ -629,19 +821,26 @@
         "templates": [
           {
             "text": "Analyze the provided text to ascertain both the category and the sentiment (positive, neutral, or negative) it embodies. Select the category from this array: {categories}. {text}",
-            "slots": ["categories", "text"],
+            "slots": [
+              "categories",
+              "text"
+            ],
             "task_type": "classification",
             "level": "task_type"
           },
           {
             "text": "Additionally, conduct named entity recognition to emphasize important entities and establish the central theme. {text}",
-            "slots": ["text"],
+            "slots": [
+              "text"
+            ],
             "task_type": "information_extraction",
             "level": "task_type"
           },
           {
             "text": "Moreover, undertake keyword extraction to mark prominent words, and engage in coreference resolution to identify references of the same entity within the text. {text}",
-            "slots": ["text"],
+            "slots": [
+              "text"
+            ],
             "task_type": "information_extraction",
             "level": "task_type"
           }
@@ -650,12 +849,17 @@
           {
             "value": "company, educational institution, artist, athlete, office holder, means of transportation, building, natural place, village, animal, plant, album, film, or written work",
             "slot": "categories",
-            "compatible_task_types": ["classification"]
+            "compatible_task_types": [
+              "classification"
+            ]
           },
           {
             "value": "Michael DenDekker - Michael G. DenDekker (born July 11, 1961) is an assemblyman for the state of New York's 34th district which includes the neighborhoods of Woodside, Jackson Heights, and East Elmhurst, all in the borough/county of Queens.",
             "slot": "text",
-            "compatible_task_types": ["classification", "information_extraction"]
+            "compatible_task_types": [
+              "classification",
+              "information_extraction"
+            ]
           }
         ]
       }
@@ -666,7 +870,11 @@
         "templates": [
           {
             "text": "What, in the view of {person}, {question}? Additionally, {follow_up}, incorporating one relevant case study for context.",
-            "slots": ["person", "question", "follow_up"],
+            "slots": [
+              "person",
+              "question",
+              "follow_up"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -675,17 +883,27 @@
           {
             "value": "Milton Friedman",
             "slot": "person",
-            "compatible_task_types": ["question_answering", "argumentation"]
+            "compatible_task_types": [
+              "question_answering",
+              "argumentation"
+            ]
           },
           {
             "value": "constitutes the primary responsibility of a business",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "argumentation"]
+            "compatible_task_types": [
+              "question_answering",
+              "argumentation"
+            ]
           },
           {
             "value": "evaluate its influence on societal ethics and highlight one possible repercussion on community relations",
             "slot": "follow_up",
-            "compatible_task_types": ["question_answering", "argumentation", "data_analysis"]
+            "compatible_task_types": [
+              "question_answering",
+              "argumentation",
+              "data_analysis"
+            ]
           }
         ]
       }
@@ -696,7 +914,11 @@
         "templates": [
           {
             "text": "What, according to {person}, {question}, while also analyzing {follow_up}?",
-            "slots": ["person", "question", "follow_up"],
+            "slots": [
+              "person",
+              "question",
+              "follow_up"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -705,17 +927,27 @@
           {
             "value": "Milton Friedman",
             "slot": "person",
-            "compatible_task_types": ["question_answering", "argumentation"]
+            "compatible_task_types": [
+              "question_answering",
+              "argumentation"
+            ]
           },
           {
             "value": "is the single duty of business",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "argumentation"]
+            "compatible_task_types": [
+              "question_answering",
+              "argumentation"
+            ]
           },
           {
             "value": "its impact on societal ethics and noting one potential consequence on community relations",
             "slot": "follow_up",
-            "compatible_task_types": ["question_answering", "argumentation", "data_analysis"]
+            "compatible_task_types": [
+              "question_answering",
+              "argumentation",
+              "data_analysis"
+            ]
           }
         ]
       }
@@ -728,7 +960,10 @@
         "templates": [
           {
             "text": "{context}. How much {question}?",
-            "slots": ["context", "question"],
+            "slots": [
+              "context",
+              "question"
+            ],
             "task_type": "mathematical_reasoning",
             "level": "task_type"
           }
@@ -737,12 +972,18 @@
           {
             "value": "Alexis is applying for a new job and bought a new set of business clothes to wear to the interview. She went to a department store with a budget of $200 and spent $30 on a button-up shirt, $46 on suit pants, $38 on a suit coat, $11 on socks, and $18 on a belt. She also purchased a pair of shoes, but lost the receipt for them. She has $16 left from her budget",
             "slot": "context",
-            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "mathematical_reasoning",
+              "question_answering"
+            ]
           },
           {
             "value": "did Alexis pay for the shoes",
             "slot": "question",
-            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "mathematical_reasoning",
+              "question_answering"
+            ]
           }
         ]
       }
@@ -753,7 +994,11 @@
         "templates": [
           {
             "text": "{context}. How many {question} {time}?",
-            "slots": ["context", "question", "time"],
+            "slots": [
+              "context",
+              "question",
+              "time"
+            ],
             "task_type": "mathematical_reasoning",
             "level": "task_type"
           }
@@ -762,17 +1007,25 @@
           {
             "value": "James writes a 3-page letter to 2 different friends twice a week",
             "slot": "context",
-            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "mathematical_reasoning",
+              "question_answering"
+            ]
           },
           {
             "value": "pages does he write",
             "slot": "question",
-            "compatible_task_types": ["mathematical_reasoning"]
+            "compatible_task_types": [
+              "mathematical_reasoning"
+            ]
           },
           {
             "value": "a year",
             "slot": "time",
-            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "mathematical_reasoning",
+              "question_answering"
+            ]
           }
         ]
       }
@@ -783,7 +1036,9 @@
         "templates": [
           {
             "text": "{context}. How much did she earn?",
-            "slots": ["context"],
+            "slots": [
+              "context"
+            ],
             "task_type": "mathematical_reasoning",
             "level": "task_type"
           }
@@ -792,7 +1047,10 @@
           {
             "value": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting",
             "slot": "context",
-            "compatible_task_types": ["mathematical_reasoning", "question_answering"]
+            "compatible_task_types": [
+              "mathematical_reasoning",
+              "question_answering"
+            ]
           }
         ]
       }
@@ -805,13 +1063,17 @@
         "templates": [
           {
             "text": "{question}?",
-            "slots": ["question"],
+            "slots": [
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           },
           {
             "text": "Think out loud, then answer with one of the following options: {options}",
-            "slots": ["options"],
+            "slots": [
+              "options"
+            ],
             "task_type": "chain_of_thought",
             "level": "process_directive"
           }
@@ -820,12 +1082,16 @@
           {
             "value": "Is Pikachu one of the Avengers",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "\"My answer is yes.\", \"My answer is no.\", \"My answer is maybe.\"",
             "slot": "options",
-            "compatible_task_types": ["chain_of_thought"]
+            "compatible_task_types": [
+              "chain_of_thought"
+            ]
           }
         ]
       }
@@ -836,21 +1102,26 @@
         "templates": [
           {
             "text": "Which one is {criterion}: {options}?",
-            "slots": ["criterion", "options"],
+            "slots": [
+              "criterion",
+              "options"
+            ],
             "task_type": "ranking_comparison",
             "level": "task_type"
           },
           {
             "text": "Your entire response should be in {language}, and in all capital letters.",
-            "slots": ["language"],
+            "slots": [
+              "language"
+            ],
             "task_type": "response_language",
-            "level": "content_style_constraint"
+            "level": "format_constraint"
           },
           {
             "text": "and in all capital letters",
             "slots": [],
             "task_type": "casing_constraint",
-            "level": "content_style_constraint"
+            "level": "format_constraint"
           },
           {
             "text": "At the end of your response, please explicitly add a postscript starting with P.S.",
@@ -859,37 +1130,53 @@
             "level": "format_constraint"
           },
           {
-            "text": "The word {keyword} should appear {n} or more times in your response.",
-            "slots": ["keyword", "n"],
+            "text": "The word {keyword} should appear {number} or more times in your response.",
+            "slots": [
+              "keyword",
+              "number"
+            ],
             "task_type": "keyword_frequency",
-            "level": "content_style_constraint"
+            "level": "format_constraint"
           }
         ],
         "options": [
           {
             "value": "a better brand for sneakers",
             "slot": "criterion",
-            "compatible_task_types": ["ranking_comparison"]
+            "compatible_task_types": [
+              "ranking_comparison"
+            ]
           },
           {
             "value": "Prada, Nike",
             "slot": "options",
-            "compatible_task_types": ["ranking_comparison", "question_answering"]
+            "compatible_task_types": [
+              "ranking_comparison",
+              "question_answering"
+            ]
           },
           {
             "value": "English",
             "slot": "language",
-            "compatible_task_types": ["response_language"]
+            "compatible_task_types": [
+              "response_language"
+            ]
           },
           {
             "value": "sneaker",
             "slot": "keyword",
-            "compatible_task_types": ["keyword_frequency", "keyword_inclusion"]
+            "compatible_task_types": [
+              "keyword_frequency",
+              "keyword_inclusion"
+            ]
           },
           {
             "value": "10",
-            "slot": "n",
-            "compatible_task_types": ["keyword_frequency", "length_constraint"]
+            "slot": "number",
+            "compatible_task_types": [
+              "keyword_frequency",
+              "length_constraint"
+            ]
           }
         ]
       }
@@ -900,13 +1187,17 @@
         "templates": [
           {
             "text": "Write a description for the {topic}",
-            "slots": ["topic"],
+            "slots": [
+              "topic"
+            ],
             "task_type": "explanation",
             "level": "task_type"
           },
           {
-            "text": "with at least {n} words",
-            "slots": ["n"],
+            "text": "with at least {number} words",
+            "slots": [
+              "number"
+            ],
             "task_type": "length_constraint",
             "level": "format_constraint"
           },
@@ -921,12 +1212,17 @@
           {
             "value": "Pixel 3A smartphone",
             "slot": "topic",
-            "compatible_task_types": ["explanation", "creative_writing"]
+            "compatible_task_types": [
+              "explanation",
+              "creative_writing"
+            ]
           },
           {
             "value": "400",
-            "slot": "n",
-            "compatible_task_types": ["length_constraint"]
+            "slot": "number",
+            "compatible_task_types": [
+              "length_constraint"
+            ]
           }
         ]
       }
@@ -1001,7 +1297,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1010,12 +1309,16 @@
           {
             "value": "Can brain cells move? By movement I mean long distance migration (preferably within the brain only).",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "The question is relatively broad and one should take into account that the brain not only consists of neurons, but also glial cells (supportive cells) and pre-mitotic neuronal stem cells. Furthermore, as critical fellow-scientists have indicated, developmental stage is very important, as the developing embryonic brain is very different from the adult brain.However, after sifting through various publications, the answer to the question is actually remarkably simple: Yes, brain cells migrate.In  the adult brain glial cells migrate in the brain (Klämbt, 2009). Glial cells are involved in a myriad of functions, but a notable example of migrating glial cells are the oligodendrocytes that migrate relative long distances to find their target axons onto which they wrap themselves to form the insulating myelin sheath (Tsai and Miller, 2002).Neuronal stem cells migrate over long distances in response to injury (Imitola et al., 2004) and they migrate from specific stem-cell locations (e.g., hippocampus and subventricular zone) to other regions (Clarke, 2003).Post-mitotic, but non-differentiated neurons have been shown to migrate in the adult brain in fish (Scott et al., 2012), and in mammals and non-human primates as well (Sawada et al., 2011).Not surprisingly, glial cells, stem cells and neurons also migrate during embryonic development. Most notably, post-mitotic neurons destined to fulfill peripheral functions have to migrate over relatively long distances from the neural crest to their target locations (Neuroscience, 2nd ed, Neuronal Migration).",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1026,7 +1329,10 @@
         "templates": [
           {
             "text": "{question}\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "data_analysis",
             "level": "task_type"
           }
@@ -1035,12 +1341,18 @@
           {
             "value": "View tabular file such as CSV from command line, having horizontal and vertical scrolling would be great.",
             "slot": "question",
-            "compatible_task_types": ["data_analysis", "code_generation"]
+            "compatible_task_types": [
+              "data_analysis",
+              "code_generation"
+            ]
           },
           {
             "value": "Sure, please take a look at csvkit. It provides a set of tools that adhere to the UNIX philosophy (meaning they are small, simple, single-purposed and can be combined). Here is an example that extracts the ten most populated cities in Germany from the free Maxmind World Cities database and displays the result in a console-readable format.",
             "slot": "source",
-            "compatible_task_types": ["data_analysis", "code_generation"]
+            "compatible_task_types": [
+              "data_analysis",
+              "code_generation"
+            ]
           }
         ]
       }
@@ -1051,7 +1363,10 @@
         "templates": [
           {
             "text": "Explain {topic}.\n{context}",
-            "slots": ["topic", "context"],
+            "slots": [
+              "topic",
+              "context"
+            ],
             "task_type": "explanation",
             "level": "task_type"
           }
@@ -1060,12 +1375,17 @@
           {
             "value": "what \"git reset\" does",
             "slot": "topic",
-            "compatible_task_types": ["explanation", "question_answering"]
+            "compatible_task_types": [
+              "explanation",
+              "question_answering"
+            ]
           },
           {
             "value": "I come from a SVN background and Git is a whole new paradigm. I got mercurial easily, but Git is much more technical. Please include detailed explanations about: the options --hard, --soft and --merge; the strange notation you use with HEAD such as HEAD^ and HEAD~1; concrete use cases and work flows; consequences on the working copy, the HEAD and your global stress level.",
             "slot": "context",
-            "compatible_task_types": ["explanation"]
+            "compatible_task_types": [
+              "explanation"
+            ]
           }
         ]
       }
@@ -1078,7 +1398,10 @@
         "templates": [
           {
             "text": "Given the following passage\n\n\"{passage}\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: {question}?",
-            "slots": ["passage", "question"],
+            "slots": [
+              "passage",
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1087,12 +1410,16 @@
           {
             "value": "Who would not find it rational to believe in the unknown, such as God, for example",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "Philosophical empiricists hold no knowledge to be properly inferred or deduced unless it is derived from one's sense-based experience. This view is commonly contrasted with rationalism, which states that knowledge may be derived from reason independently of the senses. For example, John Locke held that some knowledge (e.g. knowledge of God's existence) could be arrived at through intuition and reasoning alone. Similarly Robert Boyle, a prominent advocate of the experimental method, held that we have innate ideas. The main continental rationalists (Descartes, Spinoza, and Leibniz) were also advocates of the empirical \"scientific method\".",
             "slot": "passage",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1103,7 +1430,10 @@
         "templates": [
           {
             "text": "Given the following passage\n\n\"{passage}\",\n\nanswer the following question. Note that the answer is present within the text.\n\nQuestion: {question}?",
-            "slots": ["passage", "question"],
+            "slots": [
+              "passage",
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1112,12 +1442,16 @@
           {
             "value": "According to Hume, what is knowledge primarily a result of",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "Hume maintained that all knowledge, even the most basic beliefs about the natural world, cannot be conclusively established by reason. Rather, he maintained, our beliefs are more a result of accumulated habits, developed in response to accumulated sense experiences. Among his many arguments Hume also added another important slant to the debate about scientific method — that of the problem of induction.",
             "slot": "passage",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1130,7 +1464,11 @@
         "templates": [
           {
             "text": "{context}. {question}?\n{source}",
-            "slots": ["context", "question", "source"],
+            "slots": [
+              "context",
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1139,17 +1477,24 @@
           {
             "value": "Zinc is more easily oxidized than iron because zinc has a lower reduction potential",
             "slot": "context",
-            "compatible_task_types": ["question_answering", "commonsense_reasoning"]
+            "compatible_task_types": [
+              "question_answering",
+              "commonsense_reasoning"
+            ]
           },
           {
             "value": "since zinc has a lower reduction potential, it is a more what",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "One way to keep iron from corroding is to keep it painted. The layer of paint prevents the water and oxygen necessary for rust formation from coming into contact with the iron. As long as the paint remains intact, the iron is protected from corrosion.",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1160,7 +1505,10 @@
         "templates": [
           {
             "text": "{object} is a type of what?\n{source}",
-            "slots": ["object", "source"],
+            "slots": [
+              "object",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1169,12 +1517,17 @@
           {
             "value": "Alpha emission",
             "slot": "object",
-            "compatible_task_types": ["question_answering", "classification"]
+            "compatible_task_types": [
+              "question_answering",
+              "classification"
+            ]
           },
           {
             "value": "One type of radioactivity is alpha emission. What is an alpha particle? What happens to an alpha particle after it is emitted from an unstable nucleus?.",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1185,7 +1538,10 @@
         "templates": [
           {
             "text": "What {question}?\n{source}",
-            "slots": ["question", "source"],
+            "slots": [
+              "question",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1194,12 +1550,17 @@
           {
             "value": "kind of a reaction occurs when a substance reacts quickly with oxygen",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "classification"]
+            "compatible_task_types": [
+              "question_answering",
+              "classification"
+            ]
           },
           {
             "value": "A combustion reaction occurs when a substance reacts quickly with oxygen (O 2 ). For example, in the Figure below , charcoal is combining with oxygen. Combustion is commonly called burning, and the substance that burns is usually referred to as fuel. The products of a complete combustion reaction include carbon dioxide (CO 2 ) and water vapor (H 2 O). The reaction typically gives off heat and light as well. The general equation for a complete combustion reaction is:.",
             "slot": "source",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1211,8 +1572,11 @@
       "annotation": {
         "templates": [
           {
-            "text": "Given an array of integers, find two integers that sum up to a specific target integer.\n\n[{number_list}]\nTarget: {n}",
-            "slots": ["number_list", "n"],
+            "text": "Given an array of integers, find two integers that sum up to a specific target integer.\n\n[{number_list}]\nTarget: {number}",
+            "slots": [
+              "number_list",
+              "number"
+            ],
             "task_type": "mathematical_reasoning",
             "level": "task_type"
           }
@@ -1221,12 +1585,16 @@
           {
             "value": "1, 2, 3, 4",
             "slot": "number_list",
-            "compatible_task_types": ["mathematical_reasoning"]
+            "compatible_task_types": [
+              "mathematical_reasoning"
+            ]
           },
           {
             "value": "7",
-            "slot": "n",
-            "compatible_task_types": ["mathematical_reasoning"]
+            "slot": "number",
+            "compatible_task_types": [
+              "mathematical_reasoning"
+            ]
           }
         ]
       }
@@ -1237,7 +1605,9 @@
         "templates": [
           {
             "text": "Given a list of numbers, find out if they are prime or not. you can answer \"prime\" or \"not prime\".\n\nInput: List: {number_list}\n\nOutput:",
-            "slots": ["number_list"],
+            "slots": [
+              "number_list"
+            ],
             "task_type": "mathematical_reasoning",
             "level": "task_type"
           }
@@ -1246,7 +1616,10 @@
           {
             "value": "1, 4, 6, 8, 9",
             "slot": "number_list",
-            "compatible_task_types": ["mathematical_reasoning", "classification"]
+            "compatible_task_types": [
+              "mathematical_reasoning",
+              "classification"
+            ]
           }
         ]
       }
@@ -1256,8 +1629,11 @@
       "annotation": {
         "templates": [
           {
-            "text": "What would you do if you won ${n} in {context}?\nOutput:",
-            "slots": ["n", "context"],
+            "text": "What would you do if you won ${number} in {context}?\nOutput:",
+            "slots": [
+              "number",
+              "context"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1265,13 +1641,19 @@
         "options": [
           {
             "value": "1,000,000",
-            "slot": "n",
-            "compatible_task_types": ["question_answering", "prediction"]
+            "slot": "number",
+            "compatible_task_types": [
+              "question_answering",
+              "prediction"
+            ]
           },
           {
             "value": "lottery",
             "slot": "context",
-            "compatible_task_types": ["question_answering", "prediction"]
+            "compatible_task_types": [
+              "question_answering",
+              "prediction"
+            ]
           }
         ]
       }
@@ -1284,7 +1666,9 @@
         "templates": [
           {
             "text": "In which decade did {question}?",
-            "slots": ["question"],
+            "slots": [
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1293,7 +1677,9 @@
           {
             "value": "Billboard magazine first publish an American hit chart",
             "slot": "question",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1304,7 +1690,10 @@
         "templates": [
           {
             "text": "Which {person_name} wrote {work}?",
-            "slots": ["person_name", "work"],
+            "slots": [
+              "person_name",
+              "work"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1313,12 +1702,16 @@
           {
             "value": "William",
             "slot": "person_name",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "the novel Lord Of The Flies",
             "slot": "work",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1329,7 +1722,10 @@
         "templates": [
           {
             "text": "How is {person_type} {person} better known?",
-            "slots": ["person_type", "person"],
+            "slots": [
+              "person_type",
+              "person"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1338,12 +1734,16 @@
           {
             "value": "musician",
             "slot": "person_type",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "William Lee Conley",
             "slot": "person",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1356,13 +1756,17 @@
         "templates": [
           {
             "text": "In what ways can you {question}?",
-            "slots": ["question"],
+            "slots": [
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           },
           {
             "text": "Moreover, how can you {follow_up}?",
-            "slots": ["follow_up"],
+            "slots": [
+              "follow_up"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           }
@@ -1371,12 +1775,20 @@
           {
             "value": "expand the scope and depth of data analysis to increase the precision and accuracy of an algorithm specifically developed to predict weather patterns in a particular region, taking into account multiple factors such as historical data, temperature, humidity, wind speed, and atmospheric pressure",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "data_analysis", "prediction"]
+            "compatible_task_types": [
+              "question_answering",
+              "data_analysis",
+              "prediction"
+            ]
           },
           {
             "value": "incorporate the possible effects of external factors such as natural disasters and climate change on weather patterns into the predictive model, and what could be the potential impacts of such factors on the accuracy of the model",
             "slot": "follow_up",
-            "compatible_task_types": ["question_answering", "data_analysis", "prediction"]
+            "compatible_task_types": [
+              "question_answering",
+              "data_analysis",
+              "prediction"
+            ]
           }
         ]
       }
@@ -1387,19 +1799,28 @@
         "templates": [
           {
             "text": "How can we develop a {programming_language} program that {programming_task}?",
-            "slots": ["programming_language", "programming_task"],
+            "slots": [
+              "programming_language",
+              "programming_task"
+            ],
             "task_type": "code_generation",
             "level": "task_type"
           },
           {
             "text": "Specifically, how can {question}?",
-            "slots": ["question"],
+            "slots": [
+              "question"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           },
           {
             "text": "Additionally, how can we use {programming_language} to generate an outline for {text_type} on {topic}?",
-            "slots": ["programming_language", "text_type", "topic"],
+            "slots": [
+              "programming_language",
+              "text_type",
+              "topic"
+            ],
             "task_type": "code_generation",
             "level": "task_type"
           }
@@ -1408,27 +1829,41 @@
           {
             "value": "Java",
             "slot": "programming_language",
-            "compatible_task_types": ["code_generation"]
+            "compatible_task_types": [
+              "code_generation"
+            ]
           },
           {
             "value": "analyzes the impact of cultural differences on communication patterns between couples",
             "slot": "programming_task",
-            "compatible_task_types": ["code_generation"]
+            "compatible_task_types": [
+              "code_generation"
+            ]
           },
           {
             "value": "we incorporate data on cultural norms and values into our analysis of communication strategies",
             "slot": "question",
-            "compatible_task_types": ["question_answering", "data_analysis"]
+            "compatible_task_types": [
+              "question_answering",
+              "data_analysis"
+            ]
           },
           {
             "value": "an essay",
             "slot": "text_type",
-            "compatible_task_types": ["code_generation", "creative_writing"]
+            "compatible_task_types": [
+              "code_generation",
+              "creative_writing"
+            ]
           },
           {
             "value": "the importance of effective communication in relationships, taking into account the role of cultural diversity",
             "slot": "topic",
-            "compatible_task_types": ["code_generation", "creative_writing", "planning"]
+            "compatible_task_types": [
+              "code_generation",
+              "creative_writing",
+              "planning"
+            ]
           }
         ]
       }
@@ -1440,20 +1875,28 @@
       "annotation": {
         "templates": [
           {
-            "text": "Create {n} questions from the {source}.",
-            "slots": ["n", "source"],
+            "text": "Create {number} questions from the {source}.",
+            "slots": [
+              "number",
+              "source"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           },
           {
             "text": "Create corresponding {output_type} for each question.",
-            "slots": ["output_type"],
+            "slots": [
+              "output_type"
+            ],
             "task_type": "question_answering",
             "level": "task_type"
           },
           {
             "text": "Format the output in a {format_type} with columns {columns}.",
-            "slots": ["format_type", "columns"],
+            "slots": [
+              "format_type",
+              "columns"
+            ],
             "task_type": "structure_constraint",
             "level": "format_constraint"
           }
@@ -1461,28 +1904,45 @@
         "options": [
           {
             "value": "10",
-            "slot": "n",
-            "compatible_task_types": ["question_answering", "creative_writing", "brainstorming"]
+            "slot": "number",
+            "compatible_task_types": [
+              "question_answering",
+              "creative_writing",
+              "brainstorming"
+            ]
           },
           {
             "value": "text",
             "slot": "source",
-            "compatible_task_types": ["question_answering", "summarization", "information_extraction"]
+            "compatible_task_types": [
+              "question_answering",
+              "summarization",
+              "information_extraction"
+            ]
           },
           {
             "value": "answers",
             "slot": "output_type",
-            "compatible_task_types": ["question_answering"]
+            "compatible_task_types": [
+              "question_answering"
+            ]
           },
           {
             "value": "table",
             "slot": "format_type",
-            "compatible_task_types": ["question_answering", "data_analysis", "information_extraction"]
+            "compatible_task_types": [
+              "question_answering",
+              "data_analysis",
+              "information_extraction"
+            ]
           },
           {
             "value": "\"Questions\" and \"Answers\"",
             "slot": "columns",
-            "compatible_task_types": ["question_answering", "data_analysis"]
+            "compatible_task_types": [
+              "question_answering",
+              "data_analysis"
+            ]
           }
         ]
       }
@@ -1493,25 +1953,34 @@
         "templates": [
           {
             "text": "Role-play as \"{persona},\" a {persona_description}.",
-            "slots": ["persona", "persona_description"],
+            "slots": [
+              "persona",
+              "persona_description"
+            ],
             "task_type": "role_playing",
             "level": "task_type"
           },
           {
             "text": "Ensure the response is {tone_description}.",
-            "slots": ["tone_description"],
+            "slots": [
+              "tone_description"
+            ],
             "task_type": "tone_constraint",
             "level": "content_style_constraint"
           },
           {
             "text": "You can make {content_allowance}.",
-            "slots": ["content_allowance"],
+            "slots": [
+              "content_allowance"
+            ],
             "task_type": "topic_scope",
             "level": "content_style_constraint"
           },
           {
-            "text": "Use a maximum of {n} characters per answer.",
-            "slots": ["n"],
+            "text": "Use a maximum of {number} characters per answer.",
+            "slots": [
+              "number"
+            ],
             "task_type": "length_constraint",
             "level": "format_constraint"
           }
@@ -1520,27 +1989,44 @@
           {
             "value": "Eve",
             "slot": "persona",
-            "compatible_task_types": ["role_playing", "dialogue_generation"]
+            "compatible_task_types": [
+              "role_playing",
+              "dialogue_generation"
+            ]
           },
           {
             "value": "super smart computer scientist with sass",
             "slot": "persona_description",
-            "compatible_task_types": ["role_playing", "dialogue_generation"]
+            "compatible_task_types": [
+              "role_playing",
+              "dialogue_generation"
+            ]
           },
           {
             "value": "funny and a bit edgy like banter between friends",
             "slot": "tone_description",
-            "compatible_task_types": ["role_playing", "creative_writing", "dialogue_generation"]
+            "compatible_task_types": [
+              "role_playing",
+              "creative_writing",
+              "dialogue_generation"
+            ]
           },
           {
             "value": "controversial remarks",
             "slot": "content_allowance",
-            "compatible_task_types": ["role_playing", "dialogue_generation"]
+            "compatible_task_types": [
+              "role_playing",
+              "dialogue_generation"
+            ]
           },
           {
             "value": "50",
-            "slot": "n",
-            "compatible_task_types": ["role_playing", "creative_writing", "question_answering"]
+            "slot": "number",
+            "compatible_task_types": [
+              "role_playing",
+              "creative_writing",
+              "question_answering"
+            ]
           }
         ]
       }
@@ -1551,19 +2037,27 @@
         "templates": [
           {
             "text": "Include {metric} in {unit}.",
-            "slots": ["metric", "unit"],
+            "slots": [
+              "metric",
+              "unit"
+            ],
             "task_type": "keyword_inclusion",
-            "level": "content_style_constraint"
+            "level": "format_constraint"
           },
           {
             "text": "Identify {attribute}.",
-            "slots": ["attribute"],
+            "slots": [
+              "attribute"
+            ],
             "task_type": "information_extraction",
             "level": "task_type"
           },
           {
             "text": "Answers should be {length_constraint} and in {format_requirement} where applicable.",
-            "slots": ["length_constraint", "format_requirement"],
+            "slots": [
+              "length_constraint",
+              "format_requirement"
+            ],
             "task_type": "output_syntax_format",
             "level": "format_constraint"
           }
@@ -1572,27 +2066,46 @@
           {
             "value": "temperature",
             "slot": "metric",
-            "compatible_task_types": ["information_extraction", "data_analysis", "question_answering"]
+            "compatible_task_types": [
+              "information_extraction",
+              "data_analysis",
+              "question_answering"
+            ]
           },
           {
             "value": "Celsius",
             "slot": "unit",
-            "compatible_task_types": ["information_extraction", "data_analysis", "question_answering"]
+            "compatible_task_types": [
+              "information_extraction",
+              "data_analysis",
+              "question_answering"
+            ]
           },
           {
             "value": "soil type",
             "slot": "attribute",
-            "compatible_task_types": ["information_extraction", "question_answering"]
+            "compatible_task_types": [
+              "information_extraction",
+              "question_answering"
+            ]
           },
           {
             "value": "two words",
             "slot": "length_constraint",
-            "compatible_task_types": ["question_answering", "information_extraction", "creative_writing"]
+            "compatible_task_types": [
+              "question_answering",
+              "information_extraction",
+              "creative_writing"
+            ]
           },
           {
             "value": "numerical format",
             "slot": "format_requirement",
-            "compatible_task_types": ["data_analysis", "information_extraction", "question_answering"]
+            "compatible_task_types": [
+              "data_analysis",
+              "information_extraction",
+              "question_answering"
+            ]
           }
         ]
       }

@@ -41,7 +41,8 @@ from dataset.schema import (
     GeneratedPrompt,
 )
 from dataset.token_counter import set_token_counter, get_token_counter
-from dataset.extractor import extract_templates_from_dataset, normalize_existing
+from dataset.extractor import extract_templates_from_dataset
+from dataset.fix_slots import normalize_existing, fix_few_shot, FEW_SHOT_PATH
 from dataset.augmentor import augment_options
 from dataset.store import TemplateStore
 from dataset.generator import SyntheticGenerator
@@ -163,6 +164,51 @@ def run_extraction(
     return store
 
 
+def run_normalization(
+    templates_path: Path = TEMPLATES_PATH,
+    options_path: Path = OPTIONS_PATH,
+    *,
+    fix_few_shot_file: bool = False,
+) -> TemplateStore:
+    """Normalize templates/options on disk and return a reloaded TemplateStore.
+
+    Runs the full fix_slots pipeline (slot canonicalization, deduplication,
+    ID-specific fixes, …) on the JSON files in place, then reloads the store.
+    """
+    if not templates_path.exists() or not options_path.exists():
+        logger.warning("Normalization skipped: templates.json or options.json not found.")
+        return TemplateStore.load(templates_path, options_path)
+
+    with open(templates_path) as f:
+        raw_t = json.load(f)
+    with open(options_path) as f:
+        raw_o = json.load(f)
+
+    n_t, n_o = len(raw_t), len(raw_o)
+    logger.info(f"Running normalization ({n_t} templates, {n_o} options)…")
+    raw_t, raw_o = normalize_existing(raw_t, raw_o)
+
+    with open(templates_path, "w") as f:
+        json.dump(raw_t, f, indent=2, ensure_ascii=False)
+    with open(options_path, "w") as f:
+        json.dump(raw_o, f, indent=2, ensure_ascii=False)
+    logger.info(
+        f"  Normalization done: {n_t}→{len(raw_t)} templates, "
+        f"{n_o}→{len(raw_o)} options"
+    )
+
+    if fix_few_shot_file and FEW_SHOT_PATH.exists():
+        few_shot = json.loads(FEW_SHOT_PATH.read_text())
+        few_shot, fs_slot_fixes, fs_level_fixes = fix_few_shot(few_shot)
+        FEW_SHOT_PATH.write_text(json.dumps(few_shot, ensure_ascii=False, indent=2))
+        logger.info(
+            f"  few_shot_examples.json: {fs_slot_fixes} slot fixes, "
+            f"{fs_level_fixes} level fixes"
+        )
+
+    return TemplateStore.load(templates_path, options_path)
+
+
 def run_augmentation(store: TemplateStore, seed: int = 42) -> None:
     """Expand the option pool with programmatically generated variations."""
     logger.info("Augmenting options…")
@@ -273,8 +319,6 @@ examples:
                         help="Generate from previously saved templates")
     parser.add_argument("--test", action="store_true",
                         help="Smoke-test: 2 prompts/dataset, 5 generated prompts")
-    parser.add_argument("--merge-numbered-slots", action="store_true",
-                        help="Merge numbered slot variants (n1, n2 → number_list) during extraction")
     parser.add_argument("--normalize-existing", action="store_true",
                         help="Run normalization on existing templates.json / options.json and exit")
 
@@ -294,24 +338,10 @@ examples:
 
     # ── Normalize existing ────────────────────────────────────────────
     if args.normalize_existing:
-        logger.info("Normalizing existing templates and options…")
         if not TEMPLATES_PATH.exists() or not OPTIONS_PATH.exists():
             logger.error("templates.json or options.json not found.")
             sys.exit(1)
-        with open(TEMPLATES_PATH) as f:
-            raw_templates = json.load(f)
-        with open(OPTIONS_PATH) as f:
-            raw_options = json.load(f)
-        n_t, n_o = len(raw_templates), len(raw_options)
-        raw_templates, raw_options = normalize_existing(raw_templates, raw_options)
-        with open(TEMPLATES_PATH, "w") as f:
-            json.dump(raw_templates, f, indent=2, ensure_ascii=False)
-        with open(OPTIONS_PATH, "w") as f:
-            json.dump(raw_options, f, indent=2, ensure_ascii=False)
-        logger.info(
-            f"  {n_t} templates, {n_o} options → "
-            f"{len(raw_templates)} templates, {len(raw_options)} options"
-        )
+        run_normalization(fix_few_shot_file=True)
         return
 
     if args.test:
@@ -330,6 +360,8 @@ examples:
             test=args.test,
             batch_size=args.batch_size,
         )
+        store.save()
+        store = run_normalization(fix_few_shot_file=True)
         run_augmentation(store, seed=args.seed)
         store.save()
     else:
