@@ -18,7 +18,7 @@ from pathlib import Path
 
 from dataset.schema import (
     TaskTemplate, Option,
-    TEMPLATES_PATH, OPTIONS_PATH,
+    TEMPLATES_PATH, OPTIONS_PATH, AUGMENTED_OPTIONS_PATH,
     LEVEL_REMAP,
     template_id, option_id,
 )
@@ -104,6 +104,85 @@ class TemplateStore:
             result[slot] = compatible if compatible else slot_options
         return result
 
+    def get_semantically_compatible_options(
+        self,
+        template: TaskTemplate,
+        *,
+        compatibility_index: dict[str, list[str]] | None = None,
+        min_options_for_semantic: int = 3,
+    ) -> dict[str, list[Option]]:
+        """
+        Return {slot_name: [compatible options]} using 3-tier matching.
+
+        Tier 1: Exact slot name + task_type match (same as get_compatible_options).
+        Tier 2: Option type taxonomy match — options whose option_type is
+                 compatible with this slot (via option_taxonomy).
+        Tier 3: Embedding cosine similarity (via precomputed compatibility_index).
+
+        Parameters
+        ----------
+        compatibility_index
+            Precomputed mapping from "template_id:slot" → [option_ids].
+            Built by embeddings.build_compatibility_index(). If None, Tier 3
+            is skipped.
+        min_options_for_semantic
+            Only use Tier 2/3 if Tier 1 yields fewer than this many options.
+        """
+        result: dict[str, list[Option]] = {}
+
+        for slot in template.slots:
+            # ── Tier 1: exact match ───────────────────────────────────
+            slot_options = self.get_options_for_slot(slot)
+            compatible = [
+                o for o in slot_options
+                if (
+                    template.task_type in o.compatible_task_types
+                    or template.id in o.compatible_templates
+                    or "_universal" in o.compatible_task_types
+                )
+            ]
+            if not compatible:
+                compatible = list(slot_options)
+
+            if len(compatible) >= min_options_for_semantic:
+                result[slot] = compatible
+                continue
+
+            # ── Tier 2: option type taxonomy match ────────────────────
+            seen_ids = {o.id for o in compatible}
+            try:
+                from dataset.option_taxonomy import get_compatible_slots_for_type
+                for opt in self.options.values():
+                    if opt.id in seen_ids:
+                        continue
+                    if opt.option_type:
+                        compat_slots = get_compatible_slots_for_type(opt.option_type)
+                        if slot in compat_slots:
+                            compatible.append(opt)
+                            seen_ids.add(opt.id)
+            except ImportError:
+                pass
+
+            if len(compatible) >= min_options_for_semantic:
+                result[slot] = compatible
+                continue
+
+            # ── Tier 3: embedding similarity ──────────────────────────
+            if compatibility_index is not None:
+                key = f"{template.id}:{slot}"
+                sem_ids = compatibility_index.get(key, [])
+                for oid in sem_ids:
+                    if oid in seen_ids:
+                        continue
+                    opt = self.options.get(oid)
+                    if opt:
+                        compatible.append(opt)
+                        seen_ids.add(oid)
+
+            result[slot] = compatible
+
+        return result
+
     def summary(self) -> dict:
         multi_compat = sum(
             1 for o in self.options.values() if len(o.compatible_task_types) > 1
@@ -146,12 +225,39 @@ class TemplateStore:
                 "compatible_task_types": o.compatible_task_types,
                 "compatible_templates": o.compatible_templates,
                 "token_length": o.token_length, "source": o.source, "tags": o.tags,
+                **({"source_option_id": o.source_option_id} if o.source_option_id else {}),
+                **({"option_type": o.option_type} if o.option_type else {}),
             }
             for o in self.options.values()
         ]
         with open(options_path, "w") as f:
             json.dump(options_data, f, indent=2, ensure_ascii=False)
         logger.info(f"  Options saved → {options_path} ({len(options_data)} entries)")
+
+    def save_augmented(
+        self,
+        augmented_path: Path = AUGMENTED_OPTIONS_PATH,
+    ) -> None:
+        """Save augmented options to a separate file.
+
+        Captures options with source_option_id set (LLM-augmented) or
+        source="augmented" (programmatic augmentation).
+        """
+        augmented = [
+            {
+                "id": o.id, "value": o.value, "slot": o.slot,
+                "compatible_task_types": o.compatible_task_types,
+                "compatible_templates": o.compatible_templates,
+                "token_length": o.token_length, "source": o.source, "tags": o.tags,
+                **({"source_option_id": o.source_option_id} if o.source_option_id else {}),
+                **({"option_type": o.option_type} if o.option_type else {}),
+            }
+            for o in self.options.values()
+            if o.source_option_id is not None or o.source == "augmented"
+        ]
+        with open(augmented_path, "w") as f:
+            json.dump(augmented, f, indent=2, ensure_ascii=False)
+        logger.info(f"  Augmented options saved → {augmented_path} ({len(augmented)} entries)")
 
     @classmethod
     def load(
@@ -185,4 +291,25 @@ class TemplateStore:
                     store.add_option(Option(**item))
             logger.info(f"  Loaded {len(store.options)} options from {options_path}")
 
+        return store
+
+    @classmethod
+    def load_with_augmented(
+        cls,
+        templates_path: Path = TEMPLATES_PATH,
+        options_path: Path = OPTIONS_PATH,
+        augmented_path: Path = AUGMENTED_OPTIONS_PATH,
+    ) -> "TemplateStore":
+        """Load base templates/options plus augmented options."""
+        store = cls.load(templates_path, options_path)
+        if augmented_path.exists():
+            with open(augmented_path) as f:
+                augmented = json.load(f)
+            for item in augmented:
+                if "char_length" in item and "token_length" not in item:
+                    item["token_length"] = item.pop("char_length")
+                elif "char_length" in item:
+                    del item["char_length"]
+                store.add_option(Option(**item))
+            logger.info(f"  Loaded {len(augmented)} augmented options from {augmented_path}")
         return store

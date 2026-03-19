@@ -46,9 +46,11 @@ class SyntheticGenerator:
         min_tokens: int = 0,
         max_tokens: int = 0,
         seed: int = 42,
+        compatibility_index: dict[str, list[str]] | None = None,
     ):
         self.store = store
         self.taxonomy = taxonomy
+        self.compatibility_index = compatibility_index
         self.density = density
         self.min_tokens = min_tokens
         self.max_tokens = max_tokens
@@ -76,7 +78,12 @@ class SyntheticGenerator:
         if not tmpl.slots:
             return tmpl.text, []
 
-        compatible = self.store.get_compatible_options(tmpl)
+        if self.compatibility_index is not None:
+            compatible = self.store.get_semantically_compatible_options(
+                tmpl, compatibility_index=self.compatibility_index,
+            )
+        else:
+            compatible = self.store.get_compatible_options(tmpl)
         filled = tmpl.text
         option_ids: list[str] = []
 

@@ -23,6 +23,7 @@ TAXONOMY_PATH = OUTPUT_DIR / "taxonomy" / "taxonomy.json"
 SEGMENTS_PATH = OUTPUT_DIR / "segments.jsonl"
 TEMPLATES_PATH = OUTPUT_DIR / "templates.json"
 OPTIONS_PATH = OUTPUT_DIR / "options.json"
+AUGMENTED_OPTIONS_PATH = OUTPUT_DIR / "augmented_options.json"
 GENERATED_PATH = OUTPUT_DIR / "constructed_prompts.jsonl"
 FEW_SHOT_EXAMPLES_PATH = OUTPUT_DIR / "few_shot_examples.json"
 
@@ -77,6 +78,8 @@ class Option:
     token_length: int = 0
     source: str = ""
     tags: list[str] = field(default_factory=list)
+    source_option_id: str | None = None      # lineage: which option was this augmented from
+    option_type: str = ""                     # semantic type from option taxonomy
 
 
 @dataclass
@@ -137,3 +140,14 @@ class _OptionItem(_BaseModel):
 class ExtractionResult(_BaseModel):
     templates: list[_TemplateItem]
     options: list[_OptionItem]
+
+
+# ── Pydantic models for LLM augmentation ─────────────────────────────────
+
+class _AugmentedVariation(_BaseModel):
+    value: str
+    variation_type: str   # "shortened", "alternative", "generalized"
+
+
+class AugmentationResult(_BaseModel):
+    variations: list[_AugmentedVariation]

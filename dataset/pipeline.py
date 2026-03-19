@@ -149,8 +149,8 @@ def run_extraction(
     datasets: list[str] | None = None,
     test: bool = False,
     batch_size: int = 32,
-    use_two_stage: bool = True,
     gpu_memory_utilization: float = 0.7,
+    skip_segmentation: bool = False,
 ) -> TemplateStore:
     """
     Extract templates from real dataset prompts via a local model.
@@ -175,8 +175,8 @@ def run_extraction(
         ext_tmpls, ext_opts = extract_templates_from_dataset(
             prompts, taxonomy,
             model=model, device=device, batch_size=batch_size,
-            use_two_stage=use_two_stage,
             gpu_memory_utilization=gpu_memory_utilization,
+            skip_segmentation=skip_segmentation,
         )
         store.add_templates(ext_tmpls)
         store.add_options(ext_opts)
@@ -346,10 +346,10 @@ examples:
                         help="Smoke-test: 2 prompts/dataset, 5 generated prompts")
     parser.add_argument("--normalize-existing", action="store_true",
                         help="Run normalization on existing templates.json / options.json and exit")
-    parser.add_argument("--no-two-stage", action="store_true",
-                        help="Use legacy single-pass LLM extraction instead of two-stage pipeline (for A/B testing)")
     parser.add_argument("--gpu-memory", type=float, default=0.7,
                         help="Fraction of GPU memory for vLLM (0.0–1.0, default: 0.7)")
+    parser.add_argument("--skip-segmentation", action="store_true",
+                        help="Skip Stage A (segmentation) and reuse segments.jsonl from disk")
 
     args = parser.parse_args()
 
@@ -388,9 +388,10 @@ examples:
             datasets=args.datasets,
             test=args.test,
             batch_size=args.batch_size,
-            use_two_stage=not args.no_two_stage,
             gpu_memory_utilization=args.gpu_memory,
+            skip_segmentation=args.skip_segmentation,
         )
+        # Save extraction results (ground truth, before augmentation)
         store.save()
         store = run_normalization(fix_few_shot_file=True)
 
@@ -404,10 +405,14 @@ examples:
         except Exception as _ve:
             logger.warning(f"Validation step failed (non-fatal): {_ve}")
 
-        run_augmentation(store, seed=args.seed)
+        # Save normalized extraction results (before augmentation)
         store.save()
+
+        # Programmatic augmentation (augmented options saved separately)
+        run_augmentation(store, seed=args.seed)
+        store.save_augmented()
     else:
-        store = TemplateStore.load()
+        store = TemplateStore.load_with_augmented()
         if not store.templates:
             logger.error("No templates found. Run without --generate-only first.")
             sys.exit(1)

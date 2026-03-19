@@ -15,6 +15,8 @@ import re
 from enum import Enum
 from typing import Any, Literal
 
+from tqdm import tqdm
+
 from pydantic import BaseModel as _BaseModel, create_model
 
 from dataset.schema import Segment, LEVELS
@@ -271,7 +273,9 @@ def segment_and_classify_batch(
 
     all_segments: list[list[Segment]] = []
 
-    for batch_start in range(0, len(prompts), batch_size):
+    n_batches = (len(prompts) + batch_size - 1) // batch_size
+    pbar = tqdm(range(0, len(prompts), batch_size), total=n_batches, desc="Segmenting", unit="batch")
+    for batch_start in pbar:
         batch_prompts = prompts[batch_start: batch_start + batch_size]
 
         messages_batch = [

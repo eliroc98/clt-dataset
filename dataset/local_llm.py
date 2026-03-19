@@ -259,5 +259,5 @@ def generate_text_batch(
     if enable_thinking is not None:
         chat_kwargs["chat_template_kwargs"] = {"enable_thinking": enable_thinking}
 
-    outputs = llm.chat(batch_messages, sampling_params=params, **chat_kwargs)
+    outputs = llm.chat(batch_messages, sampling_params=params, use_tqdm=False, **chat_kwargs)
     return [o.outputs[0].text for o in outputs]

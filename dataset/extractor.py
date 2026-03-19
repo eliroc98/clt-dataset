@@ -1,8 +1,14 @@
 """
-extractor.py — Few-shot LLM extraction of task templates and options.
+extractor.py — LLM extraction of task templates and options.
 
 Decomposes raw instruction-tuning prompts into TaskTemplate / Option objects
 using a local model with structured JSON output.
+
+Pipeline:
+  Stage A — Segmentation: split prompts into clauses, classify each with a
+            taxonomy label (via segmenter.py).
+  Stage B — LLM Extraction: for each segment, extract templates and options
+            via batched LLM calls with structured JSON output.
 """
 
 from __future__ import annotations
@@ -41,13 +47,6 @@ from dataset.fix_slots import (
 
 import sys
 
-# spaCy is optional — required only for two-stage extraction
-try:
-    import spacy as _spacy
-    _SPACY_AVAILABLE = True
-except ImportError:
-    _SPACY_AVAILABLE = False
-
 # ── Extraction system prompt ──────────────────────────────────────────────
 
 _EXTRACTION_SYSTEM_PROMPT = """\
@@ -76,10 +75,31 @@ NOT verifiable by mechanical text inspection.
     process_directive        → instructions about HOW to reason or process \
 (step-by-step, chain-of-thought, repeat the request first, …)
 
-OPTIONS:
-- "value": the literal text from the prompt filling this slot — never a {placeholder}.
+OPTIONS — CRITICAL RULES FOR OPTION BOUNDARIES:
+- "value": the COMPLETE literal text from the prompt filling this slot. \
+The option value must include all contextual framing that makes it a coherent \
+reference. For example, "the book 'what a beautiful day'" is ONE option value \
+(not just "what a beautiful day"). Similarly, a full paragraph provided as context \
+is ONE option value, not multiple fragments.
 - "slot": the canonical slot name this value fills.
 - "compatible_task_types": ALL taxonomy labels where this value could plausibly appear.
+
+LONG CONTENT AS SINGLE OPTIONS:
+- When a prompt contains a paragraph, passage, code block, list of choices, or any \
+multi-sentence content that serves as input/context for the task, capture the ENTIRE \
+content span as a single option value. Do NOT fragment it.
+- Examples:
+  ✓ Prompt: "Summarize the following: The quick brown fox jumped over the lazy dog. \
+It was a sunny day and the fox was feeling adventurous."
+    → template: "Summarize the following: {passage}"
+    → option: slot="passage", value="The quick brown fox jumped over the lazy dog. \
+It was a sunny day and the fox was feeling adventurous."
+  ✓ Prompt: "Write a summary of the book 'what a beautiful day'"
+    → template: "Write a summary of {topic}"
+    → option: slot="topic", value="the book 'what a beautiful day'"
+  ✓ Prompt: "Classify this text: 'Machine learning is a subset of AI that...'"
+    → template: "Classify this text: {text}"
+    → option: slot="text", value="Machine learning is a subset of AI that..."
 
 SLOT NAMING — you MUST use a canonical name. Inventing new slot names is the last resort.
 - CANONICAL names (use one of these whenever it fits the semantics):
@@ -104,6 +124,9 @@ NOT one option slot="keyword" value="python, NLP".
   ✗ slot="formal" with value="formal" — slot must describe the type, not the value
   ✓ two options slot="keyword" value="python" and slot="keyword" value="NLP"
   ✗ one option slot="keyword" value="python, NLP"
+  ✓ slot="text_type" for "essay", "poem", "letter", "paragraph"
+  ✗ template "Write an essay about {topic}" with no text_type slot — \
+"essay" should be {text_type}
 - NEVER use a single letter (a, b, p, q, …) — use the full semantic name.
 - NEVER use numbered variants (option_1/option_2, n1/n2) — group into one slot \
 (e.g. `option`, `number_list`).
@@ -112,6 +135,15 @@ use `tone` or `style`).
 - NEVER qualify a canonical name with a prefix or suffix (no `task_description`, \
 `source_language`, `input_text`, `target_code`). Use the bare canonical name.
 - Use `{code}` for full code blocks, not just variable names.
+
+MAXIMIZE GENERALITY — extract as many slots as possible:
+- If a specific word or phrase in the template could be replaced with a different \
+value to produce a valid prompt of the same type, it SHOULD be a slot.
+- "Write an essay about climate change" → "Write a {text_type} about {topic}" \
+with options text_type="essay", topic="climate change".
+- "How many people in the room are more than six feet tall?" → \
+"How many {topic} in {context} are more than {number} {description}?" \
+or a simpler split that still captures the variable parts.
 
 Output valid JSON only — no markdown fences, no commentary.\
 """
@@ -175,13 +207,18 @@ def _build_messages(
     prompt: str,
     taxonomy_labels: list[str],
     dataset_name: str | None = None,
+    segment_hint: str | None = None,
 ) -> list[dict[str, str]]:
     labels_str = json.dumps(taxonomy_labels)
     few_shot = _get_few_shot_messages(dataset_name, taxonomy_labels)
+    hint_line = (
+        f"[This segment has been pre-classified as: {segment_hint} — use this as context only, do NOT extract it as a slot or option.]\n\n"
+        if segment_hint else ""
+    )
     return [
         {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
         *few_shot,
-        {"role": "user", "content": f"Taxonomy labels: {labels_str}\n\nPrompt:\n\"{prompt}\""},
+        {"role": "user", "content": f"Taxonomy labels: {labels_str}\n\n{hint_line}Prompt:\n\"{prompt}\""},
     ]
 
 
@@ -385,200 +422,6 @@ def _merge_into_store(
                     existing.compatible_templates.append(tid)
 
 
-# ── Two-stage: Stage B ablation extraction ────────────────────────────────
-
-def extract_from_segment(
-    segment: "Segment",
-    taxonomy: dict,
-    nlp: "Any",                    # spaCy Language object; caller loads once
-    taxonomy_obj: "Any | None" = None,  # Taxonomy object for pattern checks
-) -> "tuple[TaskTemplate | None, list[Option]]":
-    """Extract a TaskTemplate and Options from a pre-classified Segment.
-
-    Algorithm:
-    1. Parse span_text with spaCy.
-    2. Build candidate spans in ablation priority order.
-    3. For each candidate span, check if ablating it still Taxonomy.matches().
-    4. Commit spans that pass; keep failed spans as literals.
-    5. Tag degenerate results with source="ablation_degenerate".
-    """
-    from dataset.schema import TaskTemplate, Option, template_id, option_id
-    from dataset.token_counter import token_length
-
-    span_text = segment.span_text.strip()
-    if not span_text:
-        return None, []
-
-    # ── Named entity → slot name mapping ─────────────────────────────
-    _NE_TO_SLOT: dict[str, str] = {
-        "DATE":         "date",
-        "PERSON":       "person",
-        "GPE":          "country_city_state",
-        "LOC":          "location",
-        "NORP":         "nationality_religion_political_group",
-        "FAC":          "building_airport_highway_bridge",
-        "PRODUCT":      "object_vehicle_food",
-        "EVENT":        "event",
-        "WORK_OF_ART":  "book_song_art",
-        "LAW":          "law",
-        "ORG":          "company_agency_institution",
-        "LANGUAGE":     "language",
-        "CARDINAL":     "cardinal",
-        "ORDINAL":      "ordinal",
-        "QUANTITY":     "quantity",
-        "PERCENT":      "percent",
-        "MONEY":        "money",
-        "TIME":         "time",
-    }
-
-    # ── Quoted string regex ───────────────────────────────────────────
-    _QUOTED_RE = re.compile(r"""(?:\"[^\"]+\"|'[^']+'|`[^`]+`)""")
-    # ── Numeric + unit regex ──────────────────────────────────────────
-    _NUM_UNIT_RE = re.compile(
-        r"""\b\d+\s*(?:words?|sentences?|paragraphs?|characters?|"""
-        r"""items?|bullets?|lines?|pages?|times?)\b""",
-        re.I,
-    )
-
-    doc = nlp(span_text)
-    task_type = segment.taxonomy_label
-
-    # ── Build candidate spans (most-specific first) ───────────────────
-    candidates: list[tuple[str, str]] = []  # (span_text, slot_name)
-
-    # 1. Named entities
-    for ent in doc.ents:
-        slot = _NE_TO_SLOT.get(ent.label_, None)
-        if slot:
-            candidates.append((ent.text, slot))
-
-    # 2. Quoted strings
-    for m in _QUOTED_RE.finditer(span_text):
-        inner = m.group(0)[1:-1]  # strip quotes
-        if inner.strip():
-            candidates.append((inner, "keyword"))
-
-    # 3. Numeric + unit expressions
-    for m in _NUM_UNIT_RE.finditer(span_text):
-        candidates.append((m.group(0), "number"))
-
-    # 4. Noun chunks (longest first, skip if already covered)
-    nc_list = sorted(doc.noun_chunks, key=lambda nc: len(nc.text), reverse=True)
-    for nc in nc_list:
-        nc_text = nc.text.strip()
-        if not nc_text:
-            continue
-        # Determine slot from POS of first non-article token
-        slot = _TASK_TYPE_TO_DEFAULT_SLOT.get(task_type, "description")
-        for tok in nc:
-            if tok.pos_ == "ADJ" and tok.dep_ in ("amod", "nsubj"):
-                slot = "style"
-                break
-        candidates.append((nc_text, slot))
-
-    # 5. Prepositional phrase subtrees
-    for tok in doc:
-        if tok.dep_ == "prep":
-            subtree_text = " ".join(t.text for t in tok.subtree).strip()
-            if subtree_text and subtree_text != tok.text:
-                candidates.append((subtree_text, "description"))
-
-    # 6. Adverbial modifiers
-    for tok in doc:
-        if tok.dep_ == "advmod":
-            candidates.append((tok.text, "style"))
-
-    # ── Greedy ablation loop ──────────────────────────────────────────
-    current_text = span_text
-    committed_options: list[tuple[str, str]] = []   # (value, slot)
-
-    # Track committed spans to avoid double-ablating
-    committed_spans: set[str] = set()
-
-    # Deduplicate candidates while preserving order
-    seen_spans: set[str] = set()
-    dedup_candidates: list[tuple[str, str]] = []
-    for span, slot in candidates:
-        key = span.strip()
-        if key and key not in seen_spans and len(key) > 1:
-            seen_spans.add(key)
-            dedup_candidates.append((span, slot))
-
-    for span_val, slot_name in dedup_candidates:
-        if span_val in committed_spans:
-            continue
-        if span_val not in current_text:
-            continue
-
-        candidate_text = current_text.replace(span_val, f"{{{slot_name}}}", 1)
-
-        # Check: does the ablated template still match the taxonomy label?
-        passes = False
-        if taxonomy_obj is not None:
-            try:
-                passes = taxonomy_obj.matches(candidate_text, task_type)
-            except Exception:
-                passes = False
-        else:
-            # If no taxonomy_obj, accept ablation based on heuristic:
-            # the template still contains at least one recognizable verb
-            verb_re = re.compile(r"\b(write|describe|explain|translate|summarize|classify|list|generate|create|analyze|solve|convert|compare|rank|plan|brainstorm)\b", re.I)
-            passes = bool(verb_re.search(candidate_text))
-
-        if passes:
-            current_text = candidate_text
-            committed_options.append((span_val, slot_name))
-            committed_spans.add(span_val)
-
-    if not current_text.strip():
-        return None, []
-
-    # ── Build TaskTemplate ────────────────────────────────────────────
-    placeholder_re = re.compile(r"\{(\w+)\}")
-    slots = list(dict.fromkeys(placeholder_re.findall(current_text)))  # deduplicated
-
-    # Count non-placeholder tokens for degenerate check
-    stripped = placeholder_re.sub("", current_text)
-    non_placeholder_tokens = len(stripped.split())
-
-    source = "ablation"
-    if non_placeholder_tokens < 3 and slots:
-        source = "ablation_degenerate"
-
-    tid = template_id(task_type, current_text)
-    level = segment.level
-    fixed_text = placeholder_re.sub("", current_text)
-    tlen = token_length(fixed_text)
-
-    tmpl = TaskTemplate(
-        id=tid,
-        text=current_text,
-        slots=slots,
-        task_type=task_type,
-        level=level,
-        token_length=tlen,
-        source=source,
-    )
-
-    # ── Build Options ─────────────────────────────────────────────────
-    options: list[Option] = []
-    for val, slot in committed_options:
-        if not val.strip():
-            continue
-        oid = option_id(slot, val)
-        options.append(Option(
-            id=oid,
-            value=val,
-            slot=slot,
-            compatible_task_types=[task_type],
-            compatible_templates=[tid],
-            token_length=token_length(val),
-            source="ablation",
-        ))
-
-    return tmpl, options
-
-
 # ── Public extraction API ─────────────────────────────────────────────────
 
 def extract_templates_from_prompt_llm(
@@ -611,9 +454,8 @@ def extract_templates_from_dataset(
     model: str = "meta-llama/Llama-3.1-8B-Instruct",
     device: str | None = None,
     batch_size: int = 32,
-    use_two_stage: bool = True,
-    taxonomy_obj: "Any | None" = None,
     gpu_memory_utilization: float = 0.7,
+    skip_segmentation: bool = False,
 ) -> tuple[list[TaskTemplate], list[Option]]:
     """
     Extract templates and options from a list of prompt records.
@@ -621,107 +463,179 @@ def extract_templates_from_dataset(
     Each record must have a "prompt" field; optional "source" field enables
     dataset-specific few-shot examples. Uses batched vLLM inference.
 
-    Parameters
-    ----------
-    use_two_stage
-        When True (default): run Stage A (segmentation) + Stage B (ablation).
-        When False: use the original single-pass LLM path (for A/B testing).
-    taxonomy_obj
-        Taxonomy object from collect_task_types. Required for accurate ablation
-        checks in Stage B. If None, a fallback heuristic is used.
+    Pipeline: Stage A (segmentation) → Stage B (LLM extraction per segment).
+
+    skip_segmentation
+        When True, load Stage A results from segments.jsonl (if it exists)
+        instead of re-running the segmenter. Useful to iterate on Stage B
+        without paying the segmentation cost again.
     """
-    if use_two_stage:
-        return _extract_two_stage(
-            prompts, taxonomy,
-            model=model, device=device, batch_size=batch_size,
-            taxonomy_obj=taxonomy_obj,
-            gpu_memory_utilization=gpu_memory_utilization,
-        )
-    else:
-        return _extract_llm_single_pass(
-            prompts, taxonomy,
-            model=model, device=device, batch_size=batch_size,
-            gpu_memory_utilization=gpu_memory_utilization,
-        )
+    return _extract_segmented_llm(
+        prompts, taxonomy,
+        model=model, device=device, batch_size=batch_size,
+        gpu_memory_utilization=gpu_memory_utilization,
+        skip_segmentation=skip_segmentation,
+    )
 
 
-def _extract_two_stage(
+def _load_segments_from_disk() -> list[list] | None:
+    """Load segments from SEGMENTS_PATH if it exists. Returns None if not found."""
+    from dataset.schema import Segment
+    if not SEGMENTS_PATH.exists():
+        return None
+    segments_by_prompt: dict[str, list] = {}
+    with open(SEGMENTS_PATH, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            d = json.loads(line)
+            seg = Segment(
+                span_text=d["span_text"],
+                taxonomy_label=d["taxonomy_label"],
+                level=d["level"],
+                source_prompt=d["source_prompt"],
+                classification_method=d["classification_method"],
+            )
+            segments_by_prompt.setdefault(seg.source_prompt, []).append(seg)
+    return list(segments_by_prompt.values())
+
+
+def _extract_segmented_llm(
     prompts: list[dict],
     taxonomy: dict,
     *,
     model: str,
     device: str | None,
     batch_size: int,
-    taxonomy_obj: "Any | None",
     gpu_memory_utilization: float = 0.7,
+    skip_segmentation: bool = False,
 ) -> tuple[list[TaskTemplate], list[Option]]:
-    """Two-stage extraction: segmentation → ablation."""
+    """Segmentation → LLM extraction per segment.
+
+    Stage A: segment and classify all prompts (via segmenter.py).
+             Skipped if skip_segmentation=True and segments.jsonl already exists.
+    Stage B: for each segment, extract templates/options via batched LLM calls.
+    """
     from dataset.segmenter import segment_and_classify_batch
     from dataset.taxonomy.collect_task_types import Taxonomy
 
-    if not _SPACY_AVAILABLE:
-        logger.error(
-            "spaCy not available — falling back to single-pass LLM extraction. "
-            "Install spaCy: pip install spacy && python -m spacy download en_core_web_sm"
-        )
-        raise RuntimeError("spaCy is required for two-stage extraction but is not installed.")
-
-    # Build Taxonomy object if not provided
-    if taxonomy_obj is None:
-        taxonomy_obj = Taxonomy.from_dict(taxonomy)
-
-    nlp = _spacy.load("en_core_web_sm")#, disable=["tok2vec", "tagger", "parser", "attribute_ruler", "lemmatizer"])
+    taxonomy_obj = Taxonomy.from_dict(taxonomy)
 
     all_templates: dict[str, TaskTemplate] = {}
     all_options: dict[str, Option] = {}
 
     valid_records = [r for r in prompts if r.get("prompt", "").strip()]
     prompt_texts = [r["prompt"] for r in valid_records]
+    source_map = {r["prompt"]: r.get("source") for r in valid_records}
 
-    logger.info(
-        f"Two-stage extraction: segmenting {len(prompt_texts)} prompts "
-        f"(model={model})…"
-    )
+    # ── Stage A: segment and classify all prompts ─────────────────────
+    if skip_segmentation:
+        cached = _load_segments_from_disk()
+        if cached is not None:
+            logger.info(
+                f"  Skipping segmentation — loaded {sum(len(s) for s in cached)} "
+                f"segments from {SEGMENTS_PATH}"
+            )
+            all_prompt_segments = cached
+        else:
+            logger.warning(
+                f"  --skip-segmentation requested but {SEGMENTS_PATH} not found; "
+                f"running segmentation."
+            )
+            skip_segmentation = False
 
-    # Stage A: segment and classify all prompts
-    all_prompt_segments = segment_and_classify_batch(
-        prompt_texts, taxonomy_obj,
-        model=model, device=device, batch_size=batch_size,
-        gpu_memory_utilization=gpu_memory_utilization,
-    )
+    if not skip_segmentation:
+        logger.info(
+            f"Segmented LLM extraction: segmenting {len(prompt_texts)} prompts "
+            f"(model={model})…"
+        )
+        all_prompt_segments = segment_and_classify_batch(
+            prompt_texts, taxonomy_obj,
+            model=model, device=device, batch_size=batch_size,
+            gpu_memory_utilization=gpu_memory_utilization,
+        )
+        with open(SEGMENTS_PATH, "w", encoding="utf-8") as f:
+            for segments in all_prompt_segments:
+                for seg in segments:
+                    f.write(json.dumps({
+                        "span_text": seg.span_text,
+                        "taxonomy_label": seg.taxonomy_label,
+                        "level": seg.level,
+                        "source_prompt": seg.source_prompt,
+                        "classification_method": seg.classification_method,
+                    }, ensure_ascii=False) + "\n")
+        logger.info(f"  Segmentation results saved to {SEGMENTS_PATH}")
 
-    # Save segmentation results to JSONL
-    with open(SEGMENTS_PATH, "w", encoding="utf-8") as f:
-        for segments in all_prompt_segments:
-            for seg in segments:
-                f.write(json.dumps({
-                    "span_text": seg.span_text,
-                    "taxonomy_label": seg.taxonomy_label,
-                    "level": seg.level,
-                    "source_prompt": seg.source_prompt,
-                    "classification_method": seg.classification_method,
-                }, ensure_ascii=False) + "\n")
-    logger.info(f"  Segmentation results saved to {SEGMENTS_PATH}")
-    
-    
+    # ── Stage B: LLM extraction per segment (batched) ─────────────────
+    # Flatten all segments and build extraction messages
+    taxonomy_labels = list(taxonomy.keys())
+    flat_segments = []
+    all_msgs = []
 
-    # Stage B: ablation-based extraction per segment
-    failures = 0
     for segments in all_prompt_segments:
         for seg in segments:
-            try:
-                tmpl, opts = extract_from_segment(
-                    seg, taxonomy, nlp, taxonomy_obj=taxonomy_obj
-                )
-            except Exception as exc:
-                logger.warning(f"  extract_from_segment failed: {exc}")
-                failures += 1
+            if not seg.span_text.strip():
                 continue
-            if tmpl:
-                _merge_into_store(all_templates, all_options, [tmpl], opts)
+            flat_segments.append(seg)
+            dataset_name = source_map.get(seg.source_prompt)
+            all_msgs.append(
+                _build_messages(
+                    seg.span_text,
+                    taxonomy_labels,
+                    dataset_name,
+                    segment_hint=f"{seg.taxonomy_label} ({seg.level})",
+                )
+            )
 
     logger.info(
-        f"Two-stage extraction done: {len(all_templates)} templates, "
+        f"  Extracting templates from {len(flat_segments)} segments "
+        f"via LLM (batch_size={batch_size})…"
+    )
+
+    # Batch LLM calls
+    failures = 0
+    n_batches = (len(all_msgs) + batch_size - 1) // batch_size
+    pbar = tqdm(range(0, len(all_msgs), batch_size), total=n_batches, desc="Extracting", unit="batch")
+    for batch_start in pbar:
+        batch_msgs = all_msgs[batch_start: batch_start + batch_size]
+        batch_segs = flat_segments[batch_start: batch_start + batch_size]
+
+        try:
+            raws = _local_generate_batch(
+                model, batch_msgs,
+                temperature=0.0, device=device,
+                enable_thinking=False, json_schema=ExtractionResult,
+                gpu_memory_utilization=gpu_memory_utilization,
+            )
+        except Exception as e:
+            logger.warning(f"  Batch extraction failed: {e}")
+            raws = [""] * len(batch_msgs)
+
+        for seg, raw in zip(batch_segs, raws):
+            if not raw:
+                failures += 1
+                continue
+            try:
+                tmpls, opts = _parse_llm_extraction(
+                    raw, taxonomy, merge_numbered=True,
+                )
+                # Override level/task_type from segmentation when LLM doesn't match
+                for t in tmpls:
+                    if t.task_type not in taxonomy:
+                        t.task_type = seg.taxonomy_label
+                    if t.level not in set(LEVELS):
+                        t.level = seg.level
+            except Exception as e:
+                logger.warning(f"  Parse failed for segment: {e}")
+                failures += 1
+                continue
+            if not tmpls and not opts:
+                failures += 1
+            _merge_into_store(all_templates, all_options, tmpls, opts)
+
+    logger.info(
+        f"Segmented LLM extraction done: {len(all_templates)} templates, "
         f"{len(all_options)} options, {failures} failures"
     )
     return list(all_templates.values()), list(all_options.values())
