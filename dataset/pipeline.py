@@ -34,6 +34,25 @@ import random
 import sys
 from pathlib import Path
 
+def _pin_gpu_early() -> None:
+    """Set CUDA_VISIBLE_DEVICES and vLLM spawn method from --device before any CUDA init."""
+    for i, arg in enumerate(sys.argv):
+        if arg == "--device" and i + 1 < len(sys.argv):
+            dev = sys.argv[i + 1]
+        elif arg.startswith("--device="):
+            dev = arg.split("=", 1)[1]
+        else:
+            continue
+        if dev.startswith("cuda:"):
+            os.environ["CUDA_VISIBLE_DEVICES"] = dev.split(":", 1)[1]
+            os.environ.setdefault("VLLM_PLATFORM", "cuda")
+        return
+
+
+_pin_gpu_early()
+# vLLM defaults to fork which fails when CUDA is already initialized in the parent.
+os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+
 from tqdm import tqdm
 
 from dataset.schema import (
@@ -44,6 +63,7 @@ from dataset.token_counter import set_token_counter, get_token_counter
 from dataset.extractor import extract_templates_from_dataset
 from dataset.fix_slots import normalize_existing, fix_few_shot, FEW_SHOT_PATH
 from dataset.augmentor import augment_options
+from dataset.validator import run_post_extraction_validation
 from dataset.store import TemplateStore
 from dataset.generator import SyntheticGenerator
 
@@ -129,6 +149,8 @@ def run_extraction(
     datasets: list[str] | None = None,
     test: bool = False,
     batch_size: int = 32,
+    use_two_stage: bool = True,
+    gpu_memory_utilization: float = 0.7,
 ) -> TemplateStore:
     """
     Extract templates from real dataset prompts via a local model.
@@ -153,6 +175,8 @@ def run_extraction(
         ext_tmpls, ext_opts = extract_templates_from_dataset(
             prompts, taxonomy,
             model=model, device=device, batch_size=batch_size,
+            use_two_stage=use_two_stage,
+            gpu_memory_utilization=gpu_memory_utilization,
         )
         store.add_templates(ext_tmpls)
         store.add_options(ext_opts)
@@ -308,7 +332,8 @@ examples:
     parser.add_argument("--hf-token", type=str, default=None,
                         help="HuggingFace token override (default: read from .env.huggingface)")
     parser.add_argument("--device", type=str, default=None,
-                        help="Device override (ignored by vLLM; vLLM auto-selects GPUs)")
+                        help="CUDA device to use, e.g. 'cuda:0' or 'cuda:1'. "
+                             "Sets CUDA_VISIBLE_DEVICES to pin the model to a specific GPU.")
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Prompts per vLLM batch during extraction (default: 32)")
     parser.add_argument("--datasets", nargs="*", default=None,
@@ -321,6 +346,10 @@ examples:
                         help="Smoke-test: 2 prompts/dataset, 5 generated prompts")
     parser.add_argument("--normalize-existing", action="store_true",
                         help="Run normalization on existing templates.json / options.json and exit")
+    parser.add_argument("--no-two-stage", action="store_true",
+                        help="Use legacy single-pass LLM extraction instead of two-stage pipeline (for A/B testing)")
+    parser.add_argument("--gpu-memory", type=float, default=0.7,
+                        help="Fraction of GPU memory for vLLM (0.0–1.0, default: 0.7)")
 
     args = parser.parse_args()
 
@@ -359,9 +388,22 @@ examples:
             datasets=args.datasets,
             test=args.test,
             batch_size=args.batch_size,
+            use_two_stage=not args.no_two_stage,
+            gpu_memory_utilization=args.gpu_memory,
         )
         store.save()
         store = run_normalization(fix_few_shot_file=True)
+
+        # Post-extraction validation (warnings only, does not halt pipeline)
+        try:
+            from dataset.taxonomy.collect_task_types import Taxonomy
+            with open(TAXONOMY_PATH) as _f:
+                _tax_dict = json.load(_f)
+            _tax_obj = Taxonomy.from_dict(_tax_dict)
+            run_post_extraction_validation(store, _tax_obj)
+        except Exception as _ve:
+            logger.warning(f"Validation step failed (non-fatal): {_ve}")
+
         run_augmentation(store, seed=args.seed)
         store.save()
     else:

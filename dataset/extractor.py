@@ -19,6 +19,7 @@ from dataset.schema import (
     ExtractionResult,
     template_id, option_id,
     FEW_SHOT_EXAMPLES_PATH,
+    SEGMENTS_PATH,
 )
 from dataset.token_counter import token_length
 from dataset.local_llm import generate_text as _local_generate, generate_text_batch as _local_generate_batch
@@ -37,6 +38,15 @@ from dataset.fix_slots import (
     _remove_broken_options,
     normalize_existing,
 )
+
+import sys
+
+# spaCy is optional — required only for two-stage extraction
+try:
+    import spacy as _spacy
+    _SPACY_AVAILABLE = True
+except ImportError:
+    _SPACY_AVAILABLE = False
 
 # ── Extraction system prompt ──────────────────────────────────────────────
 
@@ -375,6 +385,200 @@ def _merge_into_store(
                     existing.compatible_templates.append(tid)
 
 
+# ── Two-stage: Stage B ablation extraction ────────────────────────────────
+
+def extract_from_segment(
+    segment: "Segment",
+    taxonomy: dict,
+    nlp: "Any",                    # spaCy Language object; caller loads once
+    taxonomy_obj: "Any | None" = None,  # Taxonomy object for pattern checks
+) -> "tuple[TaskTemplate | None, list[Option]]":
+    """Extract a TaskTemplate and Options from a pre-classified Segment.
+
+    Algorithm:
+    1. Parse span_text with spaCy.
+    2. Build candidate spans in ablation priority order.
+    3. For each candidate span, check if ablating it still Taxonomy.matches().
+    4. Commit spans that pass; keep failed spans as literals.
+    5. Tag degenerate results with source="ablation_degenerate".
+    """
+    from dataset.schema import TaskTemplate, Option, template_id, option_id
+    from dataset.token_counter import token_length
+
+    span_text = segment.span_text.strip()
+    if not span_text:
+        return None, []
+
+    # ── Named entity → slot name mapping ─────────────────────────────
+    _NE_TO_SLOT: dict[str, str] = {
+        "DATE":         "date",
+        "PERSON":       "person",
+        "GPE":          "country_city_state",
+        "LOC":          "location",
+        "NORP":         "nationality_religion_political_group",
+        "FAC":          "building_airport_highway_bridge",
+        "PRODUCT":      "object_vehicle_food",
+        "EVENT":        "event",
+        "WORK_OF_ART":  "book_song_art",
+        "LAW":          "law",
+        "ORG":          "company_agency_institution",
+        "LANGUAGE":     "language",
+        "CARDINAL":     "cardinal",
+        "ORDINAL":      "ordinal",
+        "QUANTITY":     "quantity",
+        "PERCENT":      "percent",
+        "MONEY":        "money",
+        "TIME":         "time",
+    }
+
+    # ── Quoted string regex ───────────────────────────────────────────
+    _QUOTED_RE = re.compile(r"""(?:\"[^\"]+\"|'[^']+'|`[^`]+`)""")
+    # ── Numeric + unit regex ──────────────────────────────────────────
+    _NUM_UNIT_RE = re.compile(
+        r"""\b\d+\s*(?:words?|sentences?|paragraphs?|characters?|"""
+        r"""items?|bullets?|lines?|pages?|times?)\b""",
+        re.I,
+    )
+
+    doc = nlp(span_text)
+    task_type = segment.taxonomy_label
+
+    # ── Build candidate spans (most-specific first) ───────────────────
+    candidates: list[tuple[str, str]] = []  # (span_text, slot_name)
+
+    # 1. Named entities
+    for ent in doc.ents:
+        slot = _NE_TO_SLOT.get(ent.label_, None)
+        if slot:
+            candidates.append((ent.text, slot))
+
+    # 2. Quoted strings
+    for m in _QUOTED_RE.finditer(span_text):
+        inner = m.group(0)[1:-1]  # strip quotes
+        if inner.strip():
+            candidates.append((inner, "keyword"))
+
+    # 3. Numeric + unit expressions
+    for m in _NUM_UNIT_RE.finditer(span_text):
+        candidates.append((m.group(0), "number"))
+
+    # 4. Noun chunks (longest first, skip if already covered)
+    nc_list = sorted(doc.noun_chunks, key=lambda nc: len(nc.text), reverse=True)
+    for nc in nc_list:
+        nc_text = nc.text.strip()
+        if not nc_text:
+            continue
+        # Determine slot from POS of first non-article token
+        slot = _TASK_TYPE_TO_DEFAULT_SLOT.get(task_type, "description")
+        for tok in nc:
+            if tok.pos_ == "ADJ" and tok.dep_ in ("amod", "nsubj"):
+                slot = "style"
+                break
+        candidates.append((nc_text, slot))
+
+    # 5. Prepositional phrase subtrees
+    for tok in doc:
+        if tok.dep_ == "prep":
+            subtree_text = " ".join(t.text for t in tok.subtree).strip()
+            if subtree_text and subtree_text != tok.text:
+                candidates.append((subtree_text, "description"))
+
+    # 6. Adverbial modifiers
+    for tok in doc:
+        if tok.dep_ == "advmod":
+            candidates.append((tok.text, "style"))
+
+    # ── Greedy ablation loop ──────────────────────────────────────────
+    current_text = span_text
+    committed_options: list[tuple[str, str]] = []   # (value, slot)
+
+    # Track committed spans to avoid double-ablating
+    committed_spans: set[str] = set()
+
+    # Deduplicate candidates while preserving order
+    seen_spans: set[str] = set()
+    dedup_candidates: list[tuple[str, str]] = []
+    for span, slot in candidates:
+        key = span.strip()
+        if key and key not in seen_spans and len(key) > 1:
+            seen_spans.add(key)
+            dedup_candidates.append((span, slot))
+
+    for span_val, slot_name in dedup_candidates:
+        if span_val in committed_spans:
+            continue
+        if span_val not in current_text:
+            continue
+
+        candidate_text = current_text.replace(span_val, f"{{{slot_name}}}", 1)
+
+        # Check: does the ablated template still match the taxonomy label?
+        passes = False
+        if taxonomy_obj is not None:
+            try:
+                passes = taxonomy_obj.matches(candidate_text, task_type)
+            except Exception:
+                passes = False
+        else:
+            # If no taxonomy_obj, accept ablation based on heuristic:
+            # the template still contains at least one recognizable verb
+            verb_re = re.compile(r"\b(write|describe|explain|translate|summarize|classify|list|generate|create|analyze|solve|convert|compare|rank|plan|brainstorm)\b", re.I)
+            passes = bool(verb_re.search(candidate_text))
+
+        if passes:
+            current_text = candidate_text
+            committed_options.append((span_val, slot_name))
+            committed_spans.add(span_val)
+
+    if not current_text.strip():
+        return None, []
+
+    # ── Build TaskTemplate ────────────────────────────────────────────
+    placeholder_re = re.compile(r"\{(\w+)\}")
+    slots = list(dict.fromkeys(placeholder_re.findall(current_text)))  # deduplicated
+
+    # Count non-placeholder tokens for degenerate check
+    stripped = placeholder_re.sub("", current_text)
+    non_placeholder_tokens = len(stripped.split())
+
+    source = "ablation"
+    if non_placeholder_tokens < 3 and slots:
+        source = "ablation_degenerate"
+
+    tid = template_id(task_type, current_text)
+    level = segment.level
+    fixed_text = placeholder_re.sub("", current_text)
+    tlen = token_length(fixed_text)
+
+    tmpl = TaskTemplate(
+        id=tid,
+        text=current_text,
+        slots=slots,
+        task_type=task_type,
+        level=level,
+        token_length=tlen,
+        source=source,
+    )
+
+    # ── Build Options ─────────────────────────────────────────────────
+    options: list[Option] = []
+    for val, slot in committed_options:
+        if not val.strip():
+            continue
+        oid = option_id(slot, val)
+        options.append(Option(
+            id=oid,
+            value=val,
+            slot=slot,
+            compatible_task_types=[task_type],
+            compatible_templates=[tid],
+            token_length=token_length(val),
+            source="ablation",
+        ))
+
+    return tmpl, options
+
+
 # ── Public extraction API ─────────────────────────────────────────────────
 
 def extract_templates_from_prompt_llm(
@@ -407,27 +611,143 @@ def extract_templates_from_dataset(
     model: str = "meta-llama/Llama-3.1-8B-Instruct",
     device: str | None = None,
     batch_size: int = 32,
+    use_two_stage: bool = True,
+    taxonomy_obj: "Any | None" = None,
+    gpu_memory_utilization: float = 0.7,
 ) -> tuple[list[TaskTemplate], list[Option]]:
     """
     Extract templates and options from a list of prompt records.
 
     Each record must have a "prompt" field; optional "source" field enables
     dataset-specific few-shot examples. Uses batched vLLM inference.
+
+    Parameters
+    ----------
+    use_two_stage
+        When True (default): run Stage A (segmentation) + Stage B (ablation).
+        When False: use the original single-pass LLM path (for A/B testing).
+    taxonomy_obj
+        Taxonomy object from collect_task_types. Required for accurate ablation
+        checks in Stage B. If None, a fallback heuristic is used.
     """
+    if use_two_stage:
+        return _extract_two_stage(
+            prompts, taxonomy,
+            model=model, device=device, batch_size=batch_size,
+            taxonomy_obj=taxonomy_obj,
+            gpu_memory_utilization=gpu_memory_utilization,
+        )
+    else:
+        return _extract_llm_single_pass(
+            prompts, taxonomy,
+            model=model, device=device, batch_size=batch_size,
+            gpu_memory_utilization=gpu_memory_utilization,
+        )
+
+
+def _extract_two_stage(
+    prompts: list[dict],
+    taxonomy: dict,
+    *,
+    model: str,
+    device: str | None,
+    batch_size: int,
+    taxonomy_obj: "Any | None",
+    gpu_memory_utilization: float = 0.7,
+) -> tuple[list[TaskTemplate], list[Option]]:
+    """Two-stage extraction: segmentation → ablation."""
+    from dataset.segmenter import segment_and_classify_batch
+    from dataset.taxonomy.collect_task_types import Taxonomy
+
+    if not _SPACY_AVAILABLE:
+        logger.error(
+            "spaCy not available — falling back to single-pass LLM extraction. "
+            "Install spaCy: pip install spacy && python -m spacy download en_core_web_sm"
+        )
+        raise RuntimeError("spaCy is required for two-stage extraction but is not installed.")
+
+    # Build Taxonomy object if not provided
+    if taxonomy_obj is None:
+        taxonomy_obj = Taxonomy.from_dict(taxonomy)
+
+    nlp = _spacy.load("en_core_web_sm")#, disable=["tok2vec", "tagger", "parser", "attribute_ruler", "lemmatizer"])
+
+    all_templates: dict[str, TaskTemplate] = {}
+    all_options: dict[str, Option] = {}
+
+    valid_records = [r for r in prompts if r.get("prompt", "").strip()]
+    prompt_texts = [r["prompt"] for r in valid_records]
+
+    logger.info(
+        f"Two-stage extraction: segmenting {len(prompt_texts)} prompts "
+        f"(model={model})…"
+    )
+
+    # Stage A: segment and classify all prompts
+    all_prompt_segments = segment_and_classify_batch(
+        prompt_texts, taxonomy_obj,
+        model=model, device=device, batch_size=batch_size,
+        gpu_memory_utilization=gpu_memory_utilization,
+    )
+
+    # Save segmentation results to JSONL
+    with open(SEGMENTS_PATH, "w", encoding="utf-8") as f:
+        for segments in all_prompt_segments:
+            for seg in segments:
+                f.write(json.dumps({
+                    "span_text": seg.span_text,
+                    "taxonomy_label": seg.taxonomy_label,
+                    "level": seg.level,
+                    "source_prompt": seg.source_prompt,
+                    "classification_method": seg.classification_method,
+                }, ensure_ascii=False) + "\n")
+    logger.info(f"  Segmentation results saved to {SEGMENTS_PATH}")
+    
+    
+
+    # Stage B: ablation-based extraction per segment
+    failures = 0
+    for segments in all_prompt_segments:
+        for seg in segments:
+            try:
+                tmpl, opts = extract_from_segment(
+                    seg, taxonomy, nlp, taxonomy_obj=taxonomy_obj
+                )
+            except Exception as exc:
+                logger.warning(f"  extract_from_segment failed: {exc}")
+                failures += 1
+                continue
+            if tmpl:
+                _merge_into_store(all_templates, all_options, [tmpl], opts)
+
+    logger.info(
+        f"Two-stage extraction done: {len(all_templates)} templates, "
+        f"{len(all_options)} options, {failures} failures"
+    )
+    return list(all_templates.values()), list(all_options.values())
+
+
+def _extract_llm_single_pass(
+    prompts: list[dict],
+    taxonomy: dict,
+    *,
+    model: str,
+    device: str | None,
+    batch_size: int,
+    gpu_memory_utilization: float = 0.7,
+) -> tuple[list[TaskTemplate], list[Option]]:
+    """Original single-pass LLM extraction (A/B test path)."""
     all_templates: dict[str, TaskTemplate] = {}
     all_options: dict[str, Option] = {}
     taxonomy_labels = list(taxonomy.keys())
     failures = 0
 
-    # Filter valid prompts and build all messages upfront
     valid_records = [r for r in prompts if r.get("prompt", "").strip()]
     all_msgs = [
         _build_messages(r["prompt"], taxonomy_labels, dataset_name=r.get("source"))
         for r in valid_records
     ]
 
-    # Send everything to vLLM at once — its internal scheduler handles
-    # continuous batching far more efficiently than manual chunking.
     logger.info(
         f"Sending {len(all_msgs)} prompts to vLLM for extraction "
         f"(model={model})…"
@@ -437,12 +757,12 @@ def extract_templates_from_dataset(
             model, all_msgs,
             temperature=0.0, device=device,
             enable_thinking=False, json_schema=ExtractionResult,
+            gpu_memory_utilization=gpu_memory_utilization,
         )
     except Exception as e:
         logger.warning(f"  Batch extraction failed: {e}")
         raws = [""] * len(valid_records)
 
-    # Post-process results
     for raw in tqdm(raws, desc="Parsing extractions", unit="prompt"):
         if not raw:
             failures += 1

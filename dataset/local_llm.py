@@ -11,6 +11,7 @@ For gated models set HF_TOKEN in .env.huggingface — loaded via dataset.auth.
 
 from __future__ import annotations
 
+import atexit
 import logging
 import os
 from typing import Any
@@ -20,6 +21,23 @@ logger = logging.getLogger(__name__)
 # ── Module-level engine cache ─────────────────────────────────────────────
 # Maps model_name → vllm.LLM instance.
 _LLM_CACHE: dict[str, Any] = {}
+
+
+def shutdown_engines() -> None:
+    """Gracefully shut down all cached vLLM engines."""
+    for name, llm in list(_LLM_CACHE.items()):
+        try:
+            engine_core = getattr(getattr(llm, "llm_engine", None), "engine_core", None)
+            if engine_core is not None and hasattr(engine_core, "shutdown"):
+                engine_core.shutdown()
+            del llm
+            logger.info(f"Model '{name}' engine shut down.")
+        except Exception as exc:
+            logger.debug(f"Engine shutdown for '{name}': {exc}")
+    _LLM_CACHE.clear()
+
+
+atexit.register(shutdown_engines)
 
 
 def _resolve_token() -> str | None:
@@ -85,6 +103,7 @@ def load_model(
     model_name: str,
     *,
     device: str | None = None,
+    gpu_memory_utilization: float = 0.7,
 ) -> Any:
     """
     Load and cache a vLLM LLM engine for *model_name*.
@@ -109,7 +128,9 @@ def load_model(
     _patch_tokenizer_compat()
     _patch_disabled_tqdm()
 
-    # Pin to a specific GPU when requested (e.g. "cuda:1" → device 1)
+    # Pin to a specific GPU when requested (e.g. "cuda:1" → device 1).
+    # NOTE: CUDA_VISIBLE_DEVICES should ideally be set before any CUDA init
+    # (see pipeline.py). This is a fallback for standalone usage.
     if device and device.startswith("cuda:"):
         gpu_id = device.split(":", 1)[1]
         os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id
@@ -127,7 +148,7 @@ def load_model(
         tokenizer_mode="auto",
         trust_remote_code=True,
         max_model_len=8192,
-        gpu_memory_utilization = 0.9
+        gpu_memory_utilization=gpu_memory_utilization
     )
 
     llm = LLM(**kwargs)
@@ -142,7 +163,7 @@ def generate_text(
     *,
     temperature: float = 0.0,
     max_new_tokens: int = 2048,
-    device: str | None = None,          # kept for API compat; vLLM handles device
+    device: str | None = None,
     enable_thinking: bool | None = None,
     json_schema: Any | None = None,
 ) -> str:
@@ -160,7 +181,8 @@ def generate_text(
     max_new_tokens
         Maximum new tokens to generate.
     device
-        Ignored (vLLM handles device placement automatically).
+        CUDA device identifier, e.g. ``"cuda:1"``. Pins the engine to
+        that GPU via ``CUDA_VISIBLE_DEVICES``.
     enable_thinking
         For models supporting chain-of-thought (e.g. Qwen3): False suppresses
         reasoning tokens. None uses the model default.
@@ -193,6 +215,7 @@ def generate_text_batch(
     device: str | None = None,
     enable_thinking: bool | None = None,
     json_schema: Any | None = None,
+    gpu_memory_utilization: float = 0.7,
 ) -> list[str]:
     """
     Generate text for a batch of chat-message lists in one forward pass.
@@ -217,7 +240,7 @@ def generate_text_batch(
     from vllm import SamplingParams
     from vllm.sampling_params import GuidedDecodingParams
 
-    llm = load_model(model_name, device=device)
+    llm = load_model(model_name, device=device, gpu_memory_utilization=gpu_memory_utilization)
 
     guided_json = _schema_to_dict(json_schema) if json_schema is not None else None
 

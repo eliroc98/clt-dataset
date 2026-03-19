@@ -42,6 +42,12 @@ CANONICAL_PREFERRED_SLOTS: frozenset[str] = frozenset({
     # extended canonical names accepted during normalization
     "tone", "style", "format", "role", "category", "title",
     "subject", "task", "content", "example",
+    # NE-derived slot names (from extractor._NE_TO_SLOT)
+    "date", "location", "event", "law", "cardinal", "ordinal",
+    "quantity", "percent", "money", "time",
+    "country_city_state", "nationality_religion_political_group",
+    "building_airport_highway_bridge", "object_vehicle_food",
+    "book_song_art", "company_agency_institution",
 })
 _CANONICAL_PREFERRED_SLOTS = CANONICAL_PREFERRED_SLOTS   # private alias
 
@@ -771,12 +777,17 @@ def normalize_existing(
     """
     # General normalization
     raw_templates, raw_options = _normalize_slot_names(raw_templates, raw_options)
-    raw_options = _detect_self_replicating_slots(raw_options, raw_templates)
+    # DEPRECATED: removed from normalize_existing in v2 — structural cause
+    # eliminated by ablation-based extraction (pass 2: self-replicating slots)
+    # raw_options = _detect_self_replicating_slots(raw_options, raw_templates)
     raw_options = _expand_list_options(raw_options)
-    raw_templates, raw_options = _merge_numbered_slots(
-        raw_templates, raw_options, join_values=False,
-    )
-    raw_templates = _drop_duplicate_slot_templates(raw_templates)
+    # DEPRECATED: removed from normalize_existing in v2 (passes 4+5)
+    # Numbered slots came from LLM enumerating slot instances; ablation assigns
+    # independently per span so numbering never arises.
+    # raw_templates, raw_options = _merge_numbered_slots(
+    #     raw_templates, raw_options, join_values=False,
+    # )
+    # raw_templates = _drop_duplicate_slot_templates(raw_templates)
     raw_templates = _sync_template_slots(raw_templates)
     raw_options = _remove_broken_options(raw_options)
 

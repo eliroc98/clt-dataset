@@ -43,7 +43,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 #   content_constraint – inclusion/exclusion of specific content
 #   meta               – meta-instructions (repeat prompt, give 2 answers, …)
 
-LEVELS = ("content_task", "format", "style", "content_constraint", "meta")
+LEVELS = ("task_type", "format_constraint", "content_style_constraint", "process_directive")
 
 
 @dataclass
@@ -116,228 +116,249 @@ class Taxonomy:
             }
         return out
 
+    def matches(self, text: str, label: str) -> bool:
+        """Check if text matches patterns for a given taxonomy label."""
+        if label not in self._entries:
+            return False
+        return self._entries[label].matches(text)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Taxonomy":
+        """Reconstruct a Taxonomy with seed patterns from a serialised taxonomy dict.
+
+        Builds a fresh seeded Taxonomy, then prunes to only entries whose names
+        appear (at any nesting depth) in *d* (e.g. the taxonomy.json structure).
+        Entries not in *d* are dropped so callers get a clean label set.
+        """
+        # Flatten all string keys from nested dict (skip metadata keys like _meta)
+        def _collect_labels(obj: dict, out: set[str]) -> None:
+            for k, v in obj.items():
+                if k.startswith("_"):
+                    continue
+                if isinstance(v, dict):
+                    level_val = v.get("level")
+                    if isinstance(level_val, str):
+                        out.add(k)
+                    else:
+                        _collect_labels(v, out)
+
+        flat_labels: set[str] = set()
+        _collect_labels(d, flat_labels)
+
+        tax = cls()  # initialises with updated seed patterns
+        # Prune entries not present in the serialised dict
+        for name in list(tax._entries.keys()):
+            if name not in flat_labels:
+                del tax._entries[name]
+        return tax
+
     # ----- seed taxonomy -----
     def _init_seed(self) -> None:
-        """Populate with well-known instruction types from the literature."""
+        """Populate with well-known instruction types from the new taxonomy."""
 
         def _add(name, level, patterns_raw, desc=""):
             pats = [re.compile(p, re.I) for p in patterns_raw]
             self.add(InstructionType(name=name, level=level, patterns=pats,
                                      description=desc))
 
-        # ── content_task ──────────────────────────────────────────────
-        _add("question_answering", "content_task", [
-            r"\b(answer the (?:following )?question|what is|who is|when did|where is|how (?:many|much|did|does|do|can)|which of)\b",
-        ], "General question answering")
+        # ── task_type: information tasks ──────────────────────────────
+        _add("question_answering", "task_type", [
+            r"\b(answer the (?:following )?question|what is|who is|when did|where is|how (?:many|much|did|does|do|can)|which of|yes or no|true or false|is it true that|does .+ (?:have|contain|exist)|choose the (?:correct|best)|select (?:the|one)|which of the following|options?:\s*\(?[A-D]|\([A-D]\)\s|explain why|describe how|what (?:are|were) the (?:reasons|causes|effects)|based on the (?:passage|text|context|paragraph)|according to|read the following|given the (?:passage|text|context))\b",
+        ], "Answer questions in any form (open, yes/no, multiple-choice, reading comprehension)")
 
-        _add("multiple_choice_qa", "content_task", [
-            r"\b(choose the (?:correct|best)|select (?:the|one)|which of the following|options?:\s*\(?[A-D])",
-            r"\([A-D]\)\s",
-        ], "Multiple-choice questions with labelled options")
-
-        _add("yes_no_qa", "content_task", [
-            r"\b(yes or no|true or false|is it true that|does .+ (?:have|contain|exist))\b",
-        ], "Yes/no or true/false questions")
-
-        _add("open_ended_qa", "content_task", [
-            r"\b(explain why|describe how|what (?:are|were) the (?:reasons|causes|effects))\b",
-        ], "Open-ended questions requiring elaboration")
-
-        _add("reading_comprehension", "content_task", [
-            r"\b(based on the (?:passage|text|context|paragraph)|according to|read the following|given the (?:passage|text|context))\b",
-        ], "Answer based on a provided passage")
-
-        _add("summarization", "content_task", [
-            r"\b(summarize|summary|summarise|write a (?:brief |short )?summary|provide a summary|tldr|tl;dr)\b",
-        ], "Condense text into a summary")
-
-        _add("classification", "content_task", [
-            r"\b(classify|categorize|categorise|label the|assign .+ to .+ categor|is this .+ positive or negative)\b",
-        ], "Assign a label or category to input")
-
-        _add("sentiment_analysis", "content_task", [
-            r"\b(sentiment|positive or negative|opinion .+ about)\b",
-        ], "Determine the sentiment of text")
-
-        _add("brainstorming", "content_task", [
-            r"\b(brainstorm|generate (?:a list|ideas|suggestions|examples)|list (?:\d+ )?(?:ways|ideas|suggestions|examples|reasons))\b",
-        ], "Generate a list of ideas or options")
-
-        _add("creative_writing", "content_task", [
-            r"\b(write a (?:story|poem|essay|letter|song|script|novel|blog)|compose|creative writing|fiction)\b",
-        ], "Produce creative or literary text")
-
-        _add("code_generation", "content_task", [
-            r"\b(write (?:a |the )?(?:code|program|function|script|class)|implement|coding|python|javascript|def |class |```)\b",
-        ], "Write or complete code")
-
-        _add("math_reasoning", "content_task", [
-            r"\b(solve|calculate|compute|math|equation|algebra|arithmetic|(\d+\s*[\+\-\*\/]\s*\d+))\b",
-        ], "Mathematical problem solving")
-
-        _add("logical_reasoning", "content_task", [
-            r"\b(logic|deduc|induc|if .+ then|syllogism|premise|conclusion|infer)\b",
-        ], "Logical or deductive reasoning")
-
-        _add("commonsense_reasoning", "content_task", [
-            r"\b(common sense|commonsense|most likely|plausible|what would happen if)\b",
-        ], "Commonsense inference")
-
-        _add("information_extraction", "content_task", [
-            r"\b(extract|identify .+ (?:entities|names|dates|numbers)|named entity|NER|find .+ in the (?:text|passage))\b",
-        ], "Extract structured info from unstructured text")
-
-        _add("translation", "content_task", [
-            r"\b(translate|translation|convert .+ to .+ language|in (?:French|Spanish|German|Chinese|Japanese|Korean|Arabic|Hindi|Russian))\b",
-        ], "Translate between languages")
-
-        _add("rewriting_paraphrasing", "content_task", [
-            r"\b(rewrite|paraphrase|rephrase|reword|simplify the (?:following|text|sentence))\b",
-        ], "Rephrase or simplify existing text")
-
-        _add("explanation", "content_task", [
-            r"\b(explain|explanation|describe .+ works|elaborate|clarify|what does .+ mean)\b",
-        ], "Explain a concept or process")
-
-        _add("dialogue_conversation", "content_task", [
-            r"\b(conversation|dialogue|chat)\b",
-        ], "Generate conversation turns")
-
-        _add("fact_verification", "content_task", [
+        _add("fact_verification", "task_type", [
             r"\b(verify|fact.?check|is it (?:true|correct) that|confirm whether)\b",
         ], "Verify factual claims")
 
-        _add("text_completion", "content_task", [
+        _add("information_extraction", "task_type", [
+            r"\b(extract|identify .+ (?:entities|names|dates|numbers)|named entity|NER|find .+ in the (?:text|passage))\b",
+        ], "Extract structured info from unstructured text")
+
+        _add("summarization", "task_type", [
+            r"\b(summarize|summary|summarise|write a (?:brief |short )?summary|provide a summary|tldr|tl;dr)\b",
+        ], "Condense text into a summary")
+
+        # ── task_type: reasoning tasks ─────────────────────────────────
+        _add("mathematical_reasoning", "task_type", [
+            r"\b(solve|calculate|compute|math|equation|algebra|arithmetic|(\d+\s*[\+\-\*\/]\s*\d+))\b",
+        ], "Mathematical problem solving")
+
+        _add("logical_deductive_reasoning", "task_type", [
+            r"\b(logic|deduc|induc|if .+ then|syllogism|premise|conclusion|infer)\b",
+        ], "Logical or deductive reasoning")
+
+        _add("commonsense_reasoning", "task_type", [
+            r"\b(common sense|commonsense|most likely|plausible|what would happen if)\b",
+        ], "Commonsense inference")
+
+        _add("argumentation", "task_type", [
+            r"\b(argue|argument|debate|persuade|justify|defend|refute|pro(?:s)? and con(?:s)?|counter.?argument)\b",
+        ], "Construct, evaluate, or refute arguments")
+
+        _add("prediction", "task_type", [
+            r"\b(predict|forecast|estimate .+ future|will happen|likely to|projec(?:t|tion)|anticipate)\b",
+        ], "Forecast future states or outcomes")
+
+        # ── task_type: generative tasks ────────────────────────────────
+        _add("creative_writing", "task_type", [
+            r"\b(write a (?:story|poem|essay|letter|song|script|novel|blog)|compose|creative writing|fiction)\b",
+        ], "Produce creative or literary text")
+
+        _add("text_completion", "task_type", [
             r"\b(complete the|fill in|continue the|finish the (?:sentence|paragraph|story))\b",
         ], "Complete or continue text")
 
-        _add("role_playing", "content_task", [
-            r"\b(role.?play|pretend you are|act as|imagine you are|you are a)\b",
-        ], "Adopt a persona")
+        _add("dialogue_generation", "task_type", [
+            r"\b(conversation|dialogue|chat)\b",
+        ], "Generate conversation turns or a full dialogue")
 
-        _add("planning", "content_task", [
-            r"\b(plan|schedule|organize|itinerary|step.?by.?step (?:plan|guide)|roadmap)\b",
-        ], "Create a plan or schedule")
+        _add("translation", "task_type", [
+            r"\b(translate|translation|convert .+ to .+ language|in (?:French|Spanish|German|Chinese|Japanese|Korean|Arabic|Hindi|Russian))\b",
+        ], "Translate between languages")
 
-        _add("data_analysis", "content_task", [
+        _add("rewriting_paraphrasing", "task_type", [
+            r"\b(rewrite|paraphrase|rephrase|reword|simplify the (?:following|text|sentence))\b",
+        ], "Rephrase or simplify existing text")
+
+        _add("communication_writing", "task_type", [
+            r"\b(write (?:(?:an?|the)\s+)?(?:\w+\s+){0,3}(?:email|e-mail|letter|memo|message|subject line)|compose (?:(?:an?|the)\s+)?(?:\w+\s+){0,2}(?:email|message))\b",
+        ], "Compose functional communication artifacts")
+
+        # ── task_type: structured output tasks ─────────────────────────
+        _add("classification", "task_type", [
+            r"\b(classify|categorize|categorise|label the|assign .+ to .+ categor|is this .+ positive or negative|sentiment|positive or negative|opinion .+ about)\b",
+        ], "Assign labels or categories; includes sentiment analysis")
+
+        _add("ranking_comparison", "task_type", [
+            r"\b(rank|compare|contrast|differentiate|distinguish|order .+ by|rate .+ from|which is (?:better|worse|best|worst))\b",
+        ], "Order, rank, or compare multiple items")
+
+        _add("data_analysis", "task_type", [
             r"\b(analyz|data analysis|interpret .+ data|statistics|chart|graph|table|CSV)\b",
         ], "Analyze or interpret data")
 
-        # ── format ────────────────────────────────────────────────────
-        _add("number_paragraphs", "format", [
-            r"\b(\d+ paragraphs?|number of paragraphs|at least \d+ paragraphs?)\b",
-        ], "Specify number of paragraphs")
+        _add("code_generation", "task_type", [
+            r"\b(write (?:a |the )?(?:code|program|function|script|class)|implement|coding|python|javascript|def |class |```)\b",
+        ], "Write or complete code")
 
-        _add("number_words", "format", [
-            r"\b(\d+ words?|word (?:count|limit)|at (?:least|most) \d+ words?|between \d+ and \d+ words?)\b",
-        ], "Specify number/range of words")
+        _add("conversion", "task_type", [
+            r"\b(convert|transform .+ into|change .+ to|turn .+ into|from .+ to (?:another|a different))\b",
+        ], "Convert values, units, formats, or representations")
 
-        _add("number_sentences", "format", [
-            r"\b(\d+ sentences?|sentence (?:count|limit)|at (?:least|most) \d+ sentences?)\b",
-        ], "Specify number of sentences")
+        # ── task_type: action/planning tasks ───────────────────────────
+        _add("planning", "task_type", [
+            r"\b(plan|schedule|organize|itinerary|step.?by.?step (?:plan|guide)|roadmap)\b",
+        ], "Create a plan or schedule")
 
-        _add("paragraph_first_word", "format", [
-            r"\b(first word of .+ paragraph|paragraph .+ (?:start|begin) with)\b",
-        ], "Constrain first word of each paragraph")
+        _add("brainstorming", "task_type", [
+            r"\b(brainstorm|generate (?:a list|ideas|suggestions|examples)|list (?:\d+ )?(?:ways|ideas|suggestions|examples|reasons))\b",
+        ], "Generate a list of ideas or options")
 
-        _add("number_bullets", "format", [
-            r"\b(bullet (?:point|list)|numbered list|\d+ bullets?|use bullets)\b",
-        ], "Use bullet points or numbered lists")
+        _add("role_playing", "task_type", [
+            r"\b(role.?play|pretend you are|act as|imagine you are|you are a)\b",
+        ], "Adopt a persona")
 
-        _add("title_required", "format", [
-            r"\b(include a title|add a title|with (?:a |the )?title|title:)\b",
-        ], "Must include a title")
+        _add("explanation", "task_type", [
+            r"\b(explain|explanation|describe .+ works|elaborate|clarify|what does .+ mean)\b",
+        ], "Explain a concept or process")
 
-        _add("multiple_sections", "format", [
-            r"\b(section|multiple sections|divided into|organize .+ into .+ sections)\b",
-        ], "Organize into sections")
+        # ── format_constraint ─────────────────────────────────────────
+        _add("length_constraint", "format_constraint", [
+            r"\b(\d+ (?:words?|sentences?|paragraphs?|characters?)|word (?:count|limit)|at (?:least|most) \d+ (?:words?|sentences?|paragraphs?)|between \d+ and \d+ (?:words?|sentences?|paragraphs?))\b",
+            r"\b(at\s+(?:least|most)|(?:no|not)\s+(?:more|fewer|less)\s+than|between\s+\d+\s+and|exactly|up\s+to|minimum|maximum|limit\s+(?:to|of))\s*\d+\s*(words?|sentences?|paragraphs?|characters?)\b",
+        ], "Constrain output length by words/sentences/paragraphs/characters")
 
-        _add("json_format", "format", [
-            r"\b(JSON|json format|output .+ json|respond .+ json)\b",
-        ], "Output in JSON")
+        _add("structure_constraint", "format_constraint", [
+            r"\b(bullet (?:point|list)|numbered list|\d+ bullets?|use bullets|include a title|add a title|with (?:a |the )?title|title:|section|multiple sections|divided into|P\.?S\.?|postscript)\b",
+        ], "Require specific structural elements (sections, bullets, title, postscript)")
 
-        _add("xml_format", "format", [
-            r"\b(XML|xml format)\b",
-        ], "Output in XML")
+        _add("output_syntax_format", "format_constraint", [
+            r"\b(JSON|json format|output .+ json|respond .+ json|XML|xml format|HTML|html format|in (?:JSON|XML|HTML|CSV|YAML|markdown)|respond .+ (?:JSON|XML|markdown))\b",
+        ], "Require machine-readable or markup syntax")
 
-        _add("specific_format", "format", [
-            r"\b(format:|output format|structured as|in the (?:following )?format)\b",
-        ], "Adhere to a specified output format")
+        _add("response_count", "format_constraint", [
+            r"\b(two (?:responses|answers|versions)|give .+ (?:two|2) (?:different )?(?:responses|answers)|multiple (?:responses|answers|versions))\b",
+            r"\b(?:give|provide|write|generate|produce|offer)\s+(?:me\s+)?(?:\d+|two|three|four|five|multiple|several)\s+(?:different\s+)?(?:answers?|responses?|versions?)\b",
+        ], "Specify how many distinct responses to provide")
 
-        _add("postscript", "format", [
-            r"\b(P\.?S\.?|postscript|post script)\b",
-        ], "Include a postscript")
+        _add("number_placeholder", "format_constraint", [
+            r"\b(placeholder|\[.+\])\b",
+        ], "Include a specified number of placeholder tokens")
 
-        _add("number_placeholder", "format", [
-            r"\b(placeholder|\[.+\]|{.+})\b",
-        ], "Include placeholders")
-
-        _add("highlighted_sections", "format", [
-            r"\b(highlight|bold|italic|underline|emphasis)\b",
-        ], "Highlight / bold / italic text")
-
-        _add("choose_from", "format", [
-            r"\b(choose from|pick from|select from)\b",
-        ], "Choose answer from a constrained set")
-
-        _add("two_responses", "format", [
-            r"\b(two (?:responses|answers|versions)|give .+ (?:two|2) (?:different )?(?:responses|answers))\b",
-        ], "Provide two alternative responses")
-
-        # ── style ─────────────────────────────────────────────────────
-        _add("response_language", "style", [
-            r"\b(respond in|answer in|write (?:in|your .+ in) (?:English|French|Spanish|German|Chinese|Japanese))\b",
-        ], "Respond in a specific language")
-
-        _add("all_uppercase", "style", [
-            r"\b(all (?:in )?uppercase|ALL CAPS|capitalize all|entirely uppercase)\b",
-        ], "Write entirely in uppercase")
-
-        _add("all_lowercase", "style", [
-            r"\b(all (?:in )?lowercase|entirely lowercase|no capital)\b",
-        ], "Write entirely in lowercase")
-
-        _add("capital_word_frequency", "style", [
-            r"\b(capitalized words?|all.?capital words?)\b",
-        ], "Control frequency of capitalized words")
-
-        _add("end_checker", "style", [
-            r"\b(end (?:with|your .+ with)|last (?:word|sentence|line))\b",
-        ], "End response with specific text")
-
-        _add("quotation", "style", [
-            r"\b(quotation|quote|wrap .+ in quotes|use .+ quotes)\b",
-        ], "Include or wrap text in quotation marks")
-
-        # ── content_constraint ────────────────────────────────────────
-        _add("keyword_inclusion", "content_constraint", [
+        # ── content_style_constraint ──────────────────────────────────
+        _add("keyword_inclusion", "content_style_constraint", [
             r"\b(include the (?:word|keyword|term)|must (?:contain|include|use) the (?:word|keyword))\b",
         ], "Must include specific keywords")
 
-        _add("keyword_frequency", "content_constraint", [
+        _add("keyword_frequency", "content_style_constraint", [
             r"\b(use .+ (?:at least|exactly|no more than) \d+ times?)\b",
         ], "Use a keyword a specific number of times")
 
-        _add("forbidden_words", "content_constraint", [
-            r"\b(do not (?:use|include|mention)|avoid (?:using|the word)|forbidden word|without (?:using|the word))\b",
-        ], "Must not include specific words")
+        _add("forbidden_words", "content_style_constraint", [
+            r"\b(do not (?:use|include|mention)|avoid (?:using|the word)|forbidden word|without (?:using|the word)|no commas|without commas|do not use commas)\b",
+        ], "Must not include specific words or punctuation")
 
-        _add("letter_frequency", "content_constraint", [
+        _add("letter_frequency", "content_style_constraint", [
             r"\b(letter .+ appear .+ times|frequency of .+ letter)\b",
         ], "Control frequency of specific letters")
 
-        _add("no_commas", "content_constraint", [
-            r"\b(no commas|without commas|do not use commas|avoid commas)\b",
-        ], "Do not use commas")
+        _add("quotation_constraint", "content_style_constraint", [
+            r"\b(quotation|quote|wrap .+ in quotes|use .+ quotes)\b",
+        ], "Wrap response or specific parts in quotation marks")
 
-        # ── meta ──────────────────────────────────────────────────────
-        _add("repeat_prompt", "meta", [
-            r"\b(repeat .+ prompt|restate .+ question|echo .+ input)\b",
-        ], "Repeat the original prompt in the response")
+        _add("highlighted_sections", "content_style_constraint", [
+            r"\b(highlight|bold|italic|underline|emphasis)\b",
+        ], "Bold, italicize, or otherwise highlight specific parts")
 
-        _add("instruction_following", "meta", [
-            r"\b(follow(?:ing)? (?:the )?instructions?|must (?:include|contain|use|end|start|be)|format your|your response (?:should|must))\b",
-        ], "Meta: explicit instruction-following directive")
+        _add("response_language", "content_style_constraint", [
+            r"\b(respond in|answer in|write (?:in|your .+ in) (?:English|French|Spanish|German|Chinese|Japanese))\b",
+            r"\b(?:respond|answer|reply|write|output)\s+(?:only\s+)?(?:in|using)\s+(?:English|French|Spanish|German|Italian|Portuguese|Chinese|Japanese|Korean|Arabic|Hindi|Russian)\b",
+        ], "Write the response in a specified natural language")
+
+        _add("casing_constraint", "content_style_constraint", [
+            r"\b(all (?:in )?uppercase|ALL CAPS|capitalize all|entirely uppercase|all (?:in )?lowercase|entirely lowercase|no capital|title case|camel case|snake case)\b",
+        ], "Apply a specific casing rule to the response")
+
+        _add("tone_constraint", "content_style_constraint", [
+            r"\b(?:(?:in|use|with)\s+(?:a\s+)?(?:formal|informal|casual|academic|professional|friendly|humorous|sarcastic|polite|neutral|persuasive|conversational|technical)\s+(?:tone|style|register|voice|manner))\b",
+        ], "Write in a specified tone or register")
+
+        _add("audience_constraint", "content_style_constraint", [
+            r"\b(?:(?:as\s+if|like)\s+(?:you\s+(?:are|were)\s+)?(?:speaking|talking|explaining|writing)\s+to\s+|for\s+(?:a\s+)?(?:child|kid|\d+[- ]?year[- ]?old|beginner|expert|layperson|general\s+audience|student|teenager|professional))\b",
+        ], "Target the response toward a specified audience")
+
+        _add("perspective_constraint", "content_style_constraint", [
+            r"\b(?:(?:in|use|write\s+in)\s+(?:the\s+)?(?:first|second|third)\s+person)\b",
+        ], "Write from a specified narrative or grammatical perspective")
+
+        _add("topic_scope", "content_style_constraint", [
+            r"\b(?:(?:only|exclusively|solely|strictly)\s+(?:about|on|regarding|concerning|related\s+to)|(?:focus|concentrate|stick)\s+(?:on|to)|(?:limit|restrict|confine)\s+(?:your(?:self)?\s+)?(?:to|the\s+(?:scope|topic)))\b",
+        ], "Restrict or focus content to a specific topic or domain")
+
+        _add("end_with", "content_style_constraint", [
+            r"\b(end (?:with|your .+ with)|last (?:word|sentence|line))\b",
+        ], "End the response with a specific word, phrase, or sentence")
+
+        # ── process_directive ─────────────────────────────────────────
+        _add("chain_of_thought", "process_directive", [
+            r"\b(?:(?:think|reason|work)\s+(?:(?:it\s+)?(?:out\s+)?)?step[- ]by[- ]step|show\s+(?:your\s+)?(?:work(?:ing)?|reasoning|thought\s+process|steps)|chain[- ]?of[- ]?thought|let'?s\s+think)\b",
+        ], "Show reasoning steps explicitly before giving the final answer")
+
+        _add("repeat_prompt", "process_directive", [
+            r"\b(repeat .+ prompt|restate .+ question|echo .+ input|first repeat the request)\b",
+        ], "Repeat the original prompt verbatim")
+
+        _add("self_evaluation", "process_directive", [
+            r"\b(?:rate\s+(?:your\s+)?(?:confidence|certainty|answer|response)|how\s+(?:sure|confident|certain)\s+(?:are\s+you)|on\s+a\s+scale\s+of\s+\d+\s+to\s+\d+)\b",
+        ], "Rate or score the generated response")
+
+        _add("conditional_execution", "process_directive", [
+            r"\b(?:if .+ then .+ (?:else|otherwise)|depending on|based on whether)\b",
+        ], "Follow different instructions depending on a condition")
+
+        _add("meta_directive", "process_directive", [
+            r"\b(follow(?:ing)? (?:the )?instructions?|must (?:include|contain|use|end|start|be)|format your|your response (?:should|must)|answer only|do not say)\b",
+        ], "Explicit high-level instruction about how to interpret other instructions")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -347,42 +368,42 @@ class Taxonomy:
 # Map known explicit category labels → existing taxonomy names + level
 CATEGORY_LABEL_MAP: dict[str, tuple[str, str]] = {
     # DollyV2
-    "brainstorming":            ("brainstorming", "content_task"),
-    "classification":           ("classification", "content_task"),
-    "closed_qa":                ("question_answering", "content_task"),
-    "creative_writing":         ("creative_writing", "content_task"),
-    "general_qa":               ("open_ended_qa", "content_task"),
-    "information_extraction":   ("information_extraction", "content_task"),
-    "open_qa":                  ("open_ended_qa", "content_task"),
-    "summarization":            ("summarization", "content_task"),
+    "brainstorming":            ("brainstorming", "task_type"),
+    "classification":           ("classification", "task_type"),
+    "closed_qa":                ("question_answering", "task_type"),
+    "creative_writing":         ("creative_writing", "task_type"),
+    "general_qa":               ("question_answering", "task_type"),
+    "information_extraction":   ("information_extraction", "task_type"),
+    "open_qa":                  ("question_answering", "task_type"),
+    "summarization":            ("summarization", "task_type"),
     # FLAN / BIGBench common keys
-    "natural_questions":        ("question_answering", "content_task"),
-    "trivia_qa":                ("question_answering", "content_task"),
-    "bool_q":                   ("yes_no_qa", "content_task"),
-    "sentiment":                ("sentiment_analysis", "content_task"),
-    "translation":              ("translation", "content_task"),
-    "paraphrase":               ("rewriting_paraphrasing", "content_task"),
-    "nli":                      ("logical_reasoning", "content_task"),
-    "commonsense":              ("commonsense_reasoning", "content_task"),
-    "math":                     ("math_reasoning", "content_task"),
-    "code":                     ("code_generation", "content_task"),
-    "dialogue":                 ("dialogue_conversation", "content_task"),
+    "natural_questions":        ("question_answering", "task_type"),
+    "trivia_qa":                ("question_answering", "task_type"),
+    "bool_q":                   ("question_answering", "task_type"),
+    "sentiment":                ("classification", "task_type"),
+    "translation":              ("translation", "task_type"),
+    "paraphrase":               ("rewriting_paraphrasing", "task_type"),
+    "nli":                      ("logical_deductive_reasoning", "task_type"),
+    "commonsense":              ("commonsense_reasoning", "task_type"),
+    "math":                     ("mathematical_reasoning", "task_type"),
+    "code":                     ("code_generation", "task_type"),
+    "dialogue":                 ("dialogue_generation", "task_type"),
     # KCIF operation labels → taxonomy entries
-    "capitalize":               ("all_uppercase", "style"),
-    "alt_case":                 ("casing_constraint", "style"),
-    "reverse_correct_answer":   ("rewriting_paraphrasing", "content_task"),
-    "reverse_correct_answer_alt_case": ("casing_constraint", "style"),
-    "correct_answer_words":     ("specific_format", "format"),
-    "numformat_numeric":        ("specific_format", "format"),
-    "correct_answer_append":    ("keyword_inclusion", "content_constraint"),
-    "increment_correct_answer_by_one": ("specific_format", "format"),
-    "increment_incorrect_answers_by_one": ("specific_format", "format"),
-    "sort_incorrect":           ("specific_format", "format"),
-    "sort_options_to_string":   ("specific_format", "format"),
-    "options_to_string":        ("specific_format", "format"),
-    "incorrect_options_to_string": ("specific_format", "format"),
-    "print_label":              ("specific_format", "format"),
-    "correct_answer_text":      ("question_answering", "content_task"),
+    "capitalize":               ("casing_constraint", "content_style_constraint"),
+    "alt_case":                 ("casing_constraint", "content_style_constraint"),
+    "reverse_correct_answer":   ("rewriting_paraphrasing", "task_type"),
+    "reverse_correct_answer_alt_case": ("casing_constraint", "content_style_constraint"),
+    "correct_answer_words":     ("output_syntax_format", "format_constraint"),
+    "numformat_numeric":        ("output_syntax_format", "format_constraint"),
+    "correct_answer_append":    ("keyword_inclusion", "content_style_constraint"),
+    "increment_correct_answer_by_one": ("output_syntax_format", "format_constraint"),
+    "increment_incorrect_answers_by_one": ("output_syntax_format", "format_constraint"),
+    "sort_incorrect":           ("output_syntax_format", "format_constraint"),
+    "sort_options_to_string":   ("output_syntax_format", "format_constraint"),
+    "options_to_string":        ("output_syntax_format", "format_constraint"),
+    "incorrect_options_to_string": ("output_syntax_format", "format_constraint"),
+    "print_label":              ("output_syntax_format", "format_constraint"),
+    "correct_answer_text":      ("question_answering", "task_type"),
 }
 
 # ─── Verb canonicalization ──────────────────────────────────────────────
@@ -414,7 +435,7 @@ _VERB_GROUPS: dict[str, list[str]] = {
     "classify":  ["classify", "categorize", "categorise", "label", "tag",
                   "sort", "group"],
     "translate": ["translate", "render", "localize"],
-    "predict":   ["predict", "forecast", "estimate", "speculate"],
+    "predict":   ["predict", "forecast", "estimate", "speculate", "anticipate"],
     "argue":     ["argue", "justify", "debate", "defend"],
     "rank":      ["rank", "order", "prioritize", "rate", "score"],
     "define":    ["define", "interpret"],
@@ -473,18 +494,21 @@ TASK_OBJECT_MAP: dict[str, str] = {
     "analysis": "data_analysis", "report": "data_analysis",
     "chart": "data_analysis", "graph": "data_analysis",
     # dialogue
-    "dialogue": "dialogue_conversation",
-    "conversation": "dialogue_conversation",
-    "chat": "dialogue_conversation",
+    "dialogue": "dialogue_generation",
+    "conversation": "dialogue_generation",
+    "chat": "dialogue_generation",
     # paraphrasing
     "paraphrase": "rewriting_paraphrasing",
     # sentiment
-    "sentiment": "sentiment_analysis", "opinion": "sentiment_analysis",
+    "sentiment": "classification", "opinion": "classification",
     # information extraction
     "entities": "information_extraction",
     "names": "information_extraction",
     # math
-    "equation": "math_reasoning", "calculation": "math_reasoning",
+    "equation": "mathematical_reasoning", "calculation": "mathematical_reasoning",
+    # ranking
+    "comparison": "ranking_comparison",
+    "ranking": "ranking_comparison",
     # fact verification
     "fact": "fact_verification", "claim": "fact_verification",
     # text completion
@@ -499,14 +523,14 @@ CANONICAL_VERB_TO_TASK: dict[str, str | None] = {
     "summarize": "summarization",
     "classify":  "classification",
     "translate": "translation",
-    "compare":   "comparison",
+    "compare":   "ranking_comparison",
     "analyze":   "data_analysis",
     "explain":   "explanation",
     "plan":      "planning",
-    "solve":     "math_reasoning",
+    "solve":     "mathematical_reasoning",
     "extract":   "information_extraction",
     "edit":      "rewriting_paraphrasing",
-    "rank":      "ranking",
+    "rank":      "ranking_comparison",
     "argue":     "argumentation",
     "predict":   "prediction",
     "define":    "explanation",
@@ -525,7 +549,7 @@ CANONICAL_VERB_TO_TASK: dict[str, str | None] = {
 
 _all_verbs_sorted = sorted(VERB_CANON.keys(), key=len, reverse=True)
 _verb_alt = "|".join(re.escape(v) for v in _all_verbs_sorted)
-_VERB_PHRASE_RE = re.compile(rf"\b({_verb_alt})\s+((?:\S+\s*){{1,5}})", re.I)
+VERB_PHRASE_RE = re.compile(rf"\b({_verb_alt})\s+((?:\S+\s*){{1,5}})", re.I)
 
 # Words to skip when searching for the object noun after a verb
 _ARTICLES = frozenset({
@@ -684,7 +708,7 @@ def enrich_from_instructions(
     unmatched: Counter = Counter()       # (canon_verb, obj_noun) → count
 
     for text in instruction_texts:
-        for m in _VERB_PHRASE_RE.finditer(text):
+        for m in VERB_PHRASE_RE.finditer(text):
             raw_verb = m.group(1).lower()
             canon = VERB_CANON.get(raw_verb)
             if canon is None:
@@ -833,107 +857,107 @@ def enrich_from_instructions(
 # found the corresponding taxonomy entry is created/attributed.
 
 _CONSTRAINT_TEMPLATES: list[tuple[re.Pattern, str, str | None]] = [
-    # ── format: length constraints ("at most 200 words", "between 3 and 5 paragraphs") ──
+    # ── format_constraint: length constraints ("at most 200 words", "between 3 and 5 paragraphs") ──
     (re.compile(
         r"\b(?:at\s+(?:least|most)|(?:no|not)\s+(?:more|fewer|less)\s+than|between\s+\d+\s+and|exactly|up\s+to|minimum|maximum|limit\s+(?:to|of))\s*\d+\s*(words?|sentences?|paragraphs?|characters?|lines?|tokens?|pages?|syllables?|bullet\s*points?|items?|points?)",
         re.I,
-    ), "format", "length_constraint"),
+    ), "format_constraint", "length_constraint"),
 
-    # ── format: output structure ("in JSON", "as a table", "as a numbered list") ──
+    # ── format_constraint: output structure ("in JSON", "as a table", "as a numbered list") ──
     (re.compile(
         r"\b(?:(?:respond|answer|output|write|format|present|return|give|provide)\s+(?:it\s+|your\s+(?:answer|response|output)\s+)?(?:in|as)\s+(?:a\s+)?)(JSON|XML|CSV|YAML|markdown|HTML|table|bullet(?:ed)?\s+(?:list|points?)|numbered\s+list|ordered\s+list|unordered\s+list|dictionary|array|code\s+block)",
         re.I,
-    ), "format", None),  # slug derived from matched group
+    ), "format_constraint", None),  # slug derived from matched group
 
-    # ── format: structural markers ("include a title", "add a header", "start with") ──
+    # ── format_constraint: structural markers ("include a title", "add a header", "start with") ──
     (re.compile(
         r"\b(?:include|add|insert|begin\s+with|start\s+with|end\s+with|contain)\s+(?:a\s+)?(?:title|header|heading|footer|introduction|conclusion|preamble|postscript|P\.?S\.?|table\s+of\s+contents|appendix|references?\s+section|bibliography)",
         re.I,
-    ), "format", "structural_marker"),
+    ), "format_constraint", "structure_constraint"),
 
-    # ── style: casing ("all uppercase", "in lowercase", "title case") ──
+    # ── content_style_constraint: casing ("all uppercase", "in lowercase", "title case") ──
     (re.compile(
         r"\b(?:all\s+(?:in\s+)?(?:uppercase|lowercase|caps|capitals)|entirely\s+(?:in\s+)?(?:uppercase|lowercase)|(?:title|camel|snake|kebab)\s+case|ALL\s+CAPS|no\s+capital(?:s|ization)?)",
         re.I,
-    ), "style", "casing_constraint"),
+    ), "content_style_constraint", "casing_constraint"),
 
-    # ── style: tone / register ("formal tone", "in a casual style", "as if speaking to a child") ──
+    # ── content_style_constraint: tone / register ("formal tone", "in a casual style", "as if speaking to a child") ──
     (re.compile(
         r"\b(?:(?:in|use|with)\s+(?:a\s+)?(?:formal|informal|casual|academic|professional|friendly|humorous|sarcastic|polite|neutral|objective|persuasive|authoritative|conversational|technical|simple|eloquent)\s+(?:tone|style|register|voice|manner|language))",
         re.I,
-    ), "style", "tone_constraint"),
+    ), "content_style_constraint", "tone_constraint"),
 
-    # ── style: person / perspective ("in first person", "use third person") ──
+    # ── content_style_constraint: person / perspective ("in first person", "use third person") ──
     (re.compile(
         r"\b(?:(?:in|use|write\s+in)\s+(?:the\s+)?(?:first|second|third)\s+person)",
         re.I,
-    ), "style", "perspective_constraint"),
+    ), "content_style_constraint", "perspective_constraint"),
 
-    # ── style: audience targeting ("for a 5-year-old", "for beginners") ──
+    # ── content_style_constraint: audience targeting ("for a 5-year-old", "for beginners") ──
     (re.compile(
         r"\b(?:(?:as\s+if|like)\s+(?:you\s+(?:are|were)\s+)?(?:speaking|talking|explaining|writing)\s+to\s+|for\s+(?:a\s+)?(?:child|kid|\d+[- ]?year[- ]?old|beginner|expert|layperson|non[- ]?expert|general\s+audience|technical\s+audience|scientist|student|teenager|professional))",
         re.I,
-    ), "style", "audience_constraint"),
+    ), "content_style_constraint", "audience_constraint"),
 
-    # ── style: language of response ("respond in French", "answer in Spanish") ──
+    # ── content_style_constraint: language of response ("respond in French", "answer in Spanish") ──
     (re.compile(
         r"\b(?:respond|answer|reply|write|output)\s+(?:only\s+)?(?:in|using)\s+(?:English|French|Spanish|German|Italian|Portuguese|Chinese|Japanese|Korean|Arabic|Hindi|Russian|Dutch|Swedish|Polish|Turkish|Hebrew|Greek|Thai|Vietnamese|Indonesian|Malay|Czech|Romanian|Hungarian|Finnish|Danish|Norwegian|Ukrainian|Bengali|Tamil|Urdu|Swahili)",
         re.I,
-    ), "style", "language_constraint"),
+    ), "content_style_constraint", "response_language"),
 
-    # ── content_constraint: keyword inclusion ("must include the word", "use the phrase") ──
+    # ── content_style_constraint: keyword inclusion ("must include the word", "use the phrase") ──
     (re.compile(
         r"\b(?:(?:must|should|need\s+to|have\s+to|make\s+sure\s+to|be\s+sure\s+to|ensure\s+(?:you|to))\s+(?:include|contain|use|mention|incorporate|reference|cite|feature))\s+(?:the\s+)?(?:(?:word|keyword|term|phrase|name|expression|string)s?\s+)?[\"\']?",
         re.I,
-    ), "content_constraint", "keyword_inclusion"),
+    ), "content_style_constraint", "keyword_inclusion"),
 
-    # ── content_constraint: keyword frequency ("use ... exactly N times") ──
+    # ── content_style_constraint: keyword frequency ("use ... exactly N times") ──
     (re.compile(
         r"\b(?:use|mention|include|repeat|say)\s+.{1,40}?(?:at\s+least|at\s+most|exactly|no\s+more\s+than|no\s+fewer\s+than)\s+\d+\s+times?",
         re.I,
-    ), "content_constraint", "keyword_frequency"),
+    ), "content_style_constraint", "keyword_frequency"),
 
-    # ── content_constraint: forbidden content ("do not use", "avoid", "without", "never mention") ──
+    # ── content_style_constraint: forbidden content ("do not use", "avoid", "without", "never mention") ──
     (re.compile(
         r"\b(?:(?:do\s+not|don'?t|never|avoid|refrain\s+from|without)\s+(?:us(?:e|ing)|includ(?:e|ing)|mention(?:ing)?|refer(?:ring)?\s+to|writ(?:e|ing)|say(?:ing)?)|(?:no\s+(?:use\s+of|mention\s+of|references?\s+to)))",
         re.I,
-    ), "content_constraint", "forbidden_content"),
+    ), "content_style_constraint", "forbidden_words"),
 
-    # ── content_constraint: specific exclusion ("no commas", "without numbers") ──
+    # ── content_style_constraint: specific exclusion ("no commas", "without numbers") ──
     (re.compile(
         r"\b(?:(?:no|without|do\s+not\s+use|avoid(?:\s+using)?)\s+(?:commas?|periods?|semicolons?|colons?|exclamation\s+marks?|question\s+marks?|numbers?|digits?|abbreviations?|acronyms?|jargon|slang|contractions?|passive\s+voice|rhetorical\s+questions?))",
         re.I,
-    ), "content_constraint", "punctuation_or_token_exclusion"),
+    ), "content_style_constraint", "forbidden_words"),
 
-    # ── content_constraint: topic scoping ("only about", "focus on", "stick to") ──
+    # ── content_style_constraint: topic scoping ("only about", "focus on", "stick to") ──
     (re.compile(
         r"\b(?:(?:only|exclusively|solely|strictly)\s+(?:about|on|regarding|concerning|related\s+to|discussing|covering)|(?:focus|concentrate|stick)\s+(?:on|to)|(?:limit|restrict|confine)\s+(?:your(?:self)?\s+)?(?:to|the\s+(?:scope|topic|subject)))",
         re.I,
-    ), "content_constraint", "topic_scope"),
+    ), "content_style_constraint", "topic_scope"),
 
-    # ── meta: repeat / echo prompt ──
+    # ── process_directive: repeat / echo prompt ──
     (re.compile(
         r"\b(?:repeat|restate|echo|copy|reproduce)\s+(?:the\s+)?(?:prompt|question|instruction|task|query|input|request|original)",
         re.I,
-    ), "meta", "repeat_prompt"),
+    ), "process_directive", "repeat_prompt"),
 
-    # ── meta: multiple answers ("give 2 answers", "provide N different responses") ──
+    # ── process_directive: multiple answers ("give 2 answers", "provide N different responses") ──
     (re.compile(
         r"\b(?:(?:give|provide|write|generate|produce|offer)\s+(?:me\s+)?(?:\d+|two|three|four|five|multiple|several|various)\s+(?:different\s+)?(?:answers?|responses?|versions?|variations?|alternatives?|options?|solutions?|attempts?))",
         re.I,
-    ), "meta", "multiple_responses"),
+    ), "process_directive", "response_count"),
 
-    # ── meta: step-by-step reasoning ("think step by step", "show your reasoning") ──
+    # ── process_directive: step-by-step reasoning ("think step by step", "show your reasoning") ──
     (re.compile(
         r"\b(?:(?:think|reason|work)\s+(?:(?:it\s+)?(?:out\s+)?)?step[- ]by[- ]step|show\s+(?:your\s+)?(?:work(?:ing)?|reasoning|thought\s+process|steps)|chain[- ]?of[- ]?thought|let'?s\s+think)",
         re.I,
-    ), "meta", "chain_of_thought"),
+    ), "process_directive", "chain_of_thought"),
 
-    # ── meta: self-evaluation ("rate your confidence", "how sure are you") ──
+    # ── process_directive: self-evaluation ("rate your confidence", "how sure are you") ──
     (re.compile(
         r"\b(?:rate\s+(?:your\s+)?(?:confidence|certainty)|how\s+(?:sure|confident|certain)\s+(?:are\s+you)|on\s+a\s+scale\s+of\s+\d+\s+to\s+\d+)",
         re.I,
-    ), "meta", "self_evaluation"),
+    ), "process_directive", "self_evaluation"),
 ]
 
 # Minimum number of matches for a constraint template to create / attribute

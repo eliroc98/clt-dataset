@@ -20,6 +20,7 @@ OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 TAXONOMY_PATH = OUTPUT_DIR / "taxonomy" / "taxonomy.json"
+SEGMENTS_PATH = OUTPUT_DIR / "segments.jsonl"
 TEMPLATES_PATH = OUTPUT_DIR / "templates.json"
 OPTIONS_PATH = OUTPUT_DIR / "options.json"
 GENERATED_PATH = OUTPUT_DIR / "constructed_prompts.jsonl"
@@ -92,6 +93,30 @@ class GeneratedPrompt:
     density: int
     token_length: int
     combo_id: str
+
+
+@dataclass
+class Segment:
+    """A clause from a prompt, labelled with a taxonomy category."""
+    span_text: str
+    taxonomy_label: str          # key in taxonomy dict
+    level: str                   # one of LEVELS
+    source_prompt: str
+    classification_method: str   # "regex" | "verb_canon" | "llm"
+
+
+@dataclass
+class ValidationReport:
+    """Results of post-extraction cross-validation."""
+    substitution_failures: list[dict]   # {template_id, template_text, fail_rate}
+    same_type_merges: list[dict]         # {t1_id, t2_id, merged_id}
+    cross_type_merges: list[dict]        # {t1_id, t2_id, merged_id}
+    semantic_collisions: list[dict]      # {t1_id, t2_id, filled_text}
+    undercovered_slots: list[dict]       # {template_id, slot, option_count}
+    degenerate_templates: list[dict]     # {template_id, template_text}
+    n_templates_tested: int
+    n_options_tested: int
+    timestamp: str
 
 
 # ── Pydantic schema for structured LLM output ─────────────────────────────
