@@ -66,8 +66,29 @@ from dataset.augmentor import augment_options
 from dataset.validator import run_post_extraction_validation
 from dataset.store import TemplateStore
 from dataset.generator import SyntheticGenerator
+from dataset.option_taxonomy import build_option_taxonomy
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+_LOG_FMT = "%(levelname)s: %(message)s"
+_LOG_FMT_FILE = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+_LOG_FILE = Path(__file__).resolve().parent / "output" / "pipeline.log"
+
+def _setup_logging() -> None:
+    """Configure root logger to write to both console and a log file."""
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter(_LOG_FMT))
+    root.addHandler(console)
+
+    _LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    fh = logging.FileHandler(_LOG_FILE, mode="a", encoding="utf-8")
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter(_LOG_FMT_FILE))
+    root.addHandler(fh)
+
+_setup_logging()
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
@@ -350,8 +371,14 @@ examples:
                         help="Fraction of GPU memory for vLLM (0.0–1.0, default: 0.7)")
     parser.add_argument("--skip-segmentation", action="store_true",
                         help="Skip Stage A (segmentation) and reuse segments.jsonl from disk")
+    parser.add_argument("--build-taxonomy", action="store_true",
+                        help="Run Stage C (option taxonomy build) on existing options.json and exit")
 
     args = parser.parse_args()
+
+    logger.info("=" * 72)
+    logger.info(f"Pipeline started — args: {vars(args)}")
+    logger.info(f"Log file: {_LOG_FILE}")
 
     set_token_counter(args.tokenizer)
     tc = get_token_counter()
@@ -364,6 +391,20 @@ examples:
         taxonomy = json.load(f)
 
     output_path = Path(args.output) if args.output else GENERATED_PATH
+
+    # ── Build option taxonomy from existing options ───────────────────
+    if args.build_taxonomy:
+        if not OPTIONS_PATH.exists():
+            logger.error("options.json not found. Run extraction first.")
+            sys.exit(1)
+        store = TemplateStore.load(TEMPLATES_PATH, OPTIONS_PATH)
+        build_option_taxonomy(
+            list(store.options.values()),
+            model=args.model,
+            device=args.device,
+            gpu_memory_utilization=args.gpu_memory,
+        )
+        return
 
     # ── Normalize existing ────────────────────────────────────────────
     if args.normalize_existing:
@@ -401,12 +442,31 @@ examples:
             with open(TAXONOMY_PATH) as _f:
                 _tax_dict = json.load(_f)
             _tax_obj = Taxonomy.from_dict(_tax_dict)
-            run_post_extraction_validation(store, _tax_obj)
+            run_post_extraction_validation(
+                store, _tax_obj,
+                model=args.model,
+                device=args.device,
+                gpu_memory_utilization=args.gpu_memory,
+            )
         except Exception as _ve:
             logger.warning(f"Validation step failed (non-fatal): {_ve}")
 
         # Save normalized extraction results (before augmentation)
         store.save()
+
+        # ── Stage C: LLM taxonomy consolidation ──────────────────────
+        # The in-memory taxonomy (accumulated batch-by-batch during Stage B)
+        # only has slot→values. Here the LLM enriches it with descriptions
+        # and cross-slot compatibility, then saves to option_taxonomy.json
+        # so the next run starts with that richer context.
+        try:
+            build_option_taxonomy(
+                list(store.options.values()),
+                model=args.model,
+                device=args.device,
+            )
+        except Exception as _te:
+            logger.warning(f"Option taxonomy consolidation failed (non-fatal): {_te}")
 
         # Programmatic augmentation (augmented options saved separately)
         run_augmentation(store, seed=args.seed)
@@ -434,4 +494,9 @@ examples:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        logger.info("Pipeline finished successfully.")
+    except Exception:
+        logger.exception("Pipeline failed with an unhandled exception.")
+        sys.exit(1)

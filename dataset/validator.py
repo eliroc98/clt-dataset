@@ -3,7 +3,8 @@ validator.py — Post-extraction cross-validation.
 
 Run after run_normalization(), before run_augmentation() in pipeline.py.
 Three tests:
-  1. Substitution (round-trip): fill slots with random options; check taxonomy match.
+  1. Substitution (round-trip): fill slots with random options; LLM classifies
+     whether the filled prompt still matches the claimed task type.
   2. Template collision + merge logic: same-text templates → merge or flag.
   3. Slot coverage: flag (template, slot) pairs with < K compatible options.
 
@@ -28,6 +29,14 @@ logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 
+_CLASSIFICATION_SYSTEM_PROMPT = """\
+You are a task-type classifier. Given an instruction prompt and a claimed task type label, \
+decide whether the prompt genuinely belongs to that task type.
+
+Reply with ONLY a JSON object: {"match": true} or {"match": false}.
+Do not explain.
+"""
+
 
 # ── Public API ────────────────────────────────────────────────────────────
 
@@ -38,6 +47,9 @@ def run_post_extraction_validation(
     n_fillings: int = 5,
     min_slot_coverage: int = 3,
     output_path: Path | None = None,
+    model: str | None = None,
+    device: str | None = None,
+    gpu_memory_utilization: float = 0.7,
 ) -> ValidationReport:
     """Run all three validation tests and return a ValidationReport.
 
@@ -46,8 +58,8 @@ def run_post_extraction_validation(
     store
         The TemplateStore after normalization.
     taxonomy_obj
-        A Taxonomy object (from collect_task_types.Taxonomy) — needed for
-        pattern-based Taxonomy.matches() calls.
+        A Taxonomy object (from collect_task_types.Taxonomy) — used as
+        fallback when no LLM model is available.
     n_fillings
         Number of random slot-fillings per template for the substitution test.
     min_slot_coverage
@@ -55,6 +67,13 @@ def run_post_extraction_validation(
         the coverage test.
     output_path
         Where to write the JSON report. Defaults to output/validation_report.json.
+    model
+        HuggingFace model ID for LLM-based substitution classification.
+        When None, falls back to regex-based Taxonomy.matches().
+    device
+        CUDA device for vLLM.
+    gpu_memory_utilization
+        Fraction of GPU memory for vLLM.
     """
     templates = list(store.templates.values())
     options = list(store.options.values())
@@ -71,7 +90,9 @@ def run_post_extraction_validation(
 
     # ── Test 1: substitution round-trip ───────────────────────────────
     substitution_failures = _test_substitution(
-        templates, options_by_slot, taxonomy_obj, n_fillings
+        templates, options_by_slot, taxonomy_obj, n_fillings,
+        model=model, device=device,
+        gpu_memory_utilization=gpu_memory_utilization,
     )
 
     # ── Test 2: template collision + merge logic ───────────────────────
@@ -131,18 +152,26 @@ def _test_substitution(
     options_by_slot: dict[str, list[Option]],
     taxonomy_obj: "Any",
     n_fillings: int,
+    *,
+    model: str | None = None,
+    device: str | None = None,
+    gpu_memory_utilization: float = 0.7,
 ) -> list[dict]:
-    """Test 1: fill slots N times and check Taxonomy.matches() preserves label."""
+    """Test 1: fill slots N times and check that filled text still matches task type.
+
+    Uses LLM classification when *model* is provided, otherwise falls back
+    to regex-based Taxonomy.matches().
+    """
     failures: list[dict] = []
     rng = random.Random(42)
 
     task_type_templates = [t for t in templates if t.level == "task_type" and t.slots]
 
+    # Generate all filled prompts first
+    filled_items: list[tuple[TaskTemplate, str]] = []
     for tmpl in task_type_templates:
         if not tmpl.task_type:
             continue
-
-        successes = 0
         for _ in range(n_fillings):
             slot_values: dict[str, str] = {}
             for slot in tmpl.slots:
@@ -152,19 +181,40 @@ def _test_substitution(
                     if tmpl.task_type in o.compatible_task_types
                 ] or candidates
                 if not compat:
-                    slot_values[slot] = slot  # fallback: use slot name as literal
+                    slot_values[slot] = slot
                 else:
                     slot_values[slot] = rng.choice(compat).value
-
             filled = _fill_slots(tmpl.text, slot_values)
+            filled_items.append((tmpl, filled))
+
+    if not filled_items:
+        logger.info("  Substitution test: no task_type templates with slots to test")
+        return failures
+
+    # Classify — LLM batch or regex fallback
+    if model:
+        match_results = _classify_substitutions_llm(
+            filled_items, model=model, device=device,
+            gpu_memory_utilization=gpu_memory_utilization,
+        )
+    else:
+        match_results = []
+        for tmpl, filled in filled_items:
             try:
-                if taxonomy_obj.matches(filled, tmpl.task_type):
-                    successes += 1
+                match_results.append(taxonomy_obj.matches(filled, tmpl.task_type))
             except Exception:
-                pass
+                match_results.append(False)
+
+    # Aggregate per template
+    idx = 0
+    for tmpl in task_type_templates:
+        if not tmpl.task_type:
+            continue
+        successes = sum(1 for r in match_results[idx:idx + n_fillings] if r)
+        idx += n_fillings
 
         fail_rate = 1.0 - (successes / n_fillings) if n_fillings > 0 else 0.0
-        if fail_rate > 0.4:  # more than 2 of 5 fail → fragile
+        if fail_rate > 0.4:
             failures.append({
                 "template_id": tmpl.id,
                 "template_text": tmpl.text,
@@ -184,6 +234,56 @@ def _test_substitution(
             f"task_type templates pass"
         )
     return failures
+
+
+def _classify_substitutions_llm(
+    filled_items: list[tuple[TaskTemplate, str]],
+    *,
+    model: str,
+    device: str | None,
+    gpu_memory_utilization: float,
+) -> list[bool]:
+    """Use an LLM to classify whether each filled prompt matches its task type."""
+    from dataset.local_llm import generate_text_batch
+
+    messages_batch = []
+    for tmpl, filled in filled_items:
+        messages_batch.append([
+            {"role": "system", "content": _CLASSIFICATION_SYSTEM_PROMPT},
+            {"role": "user", "content": (
+                f"Instruction prompt:\n\"{filled}\"\n\n"
+                f"Claimed task type: \"{tmpl.task_type}\"\n\n"
+                f"Does this prompt belong to the \"{tmpl.task_type}\" task type?"
+            )},
+        ])
+
+    logger.info(f"  LLM substitution classification: {len(messages_batch)} prompts…")
+
+    try:
+        raws = generate_text_batch(
+            model, messages_batch,
+            temperature=0.0, device=device,
+            enable_thinking=False,
+            gpu_memory_utilization=gpu_memory_utilization,
+        )
+    except Exception as e:
+        logger.warning(f"  LLM classification failed: {e}; falling back to all-fail")
+        return [False] * len(filled_items)
+
+    results: list[bool] = []
+    for raw in raws:
+        raw = raw.strip()
+        # Try to extract {"match": true/false}
+        try:
+            # Handle thinking tags if present
+            raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+            data = json.loads(raw)
+            results.append(bool(data.get("match", False)))
+        except (json.JSONDecodeError, AttributeError):
+            # Fallback: look for true/false in text
+            results.append("true" in raw.lower() and "false" not in raw.lower())
+
+    return results
 
 
 # ── Test 2: collision + merge ──────────────────────────────────────────────

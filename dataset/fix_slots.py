@@ -42,6 +42,8 @@ CANONICAL_PREFERRED_SLOTS: frozenset[str] = frozenset({
     # extended canonical names accepted during normalization
     "tone", "style", "format", "role", "category", "title",
     "subject", "task", "content", "example",
+    # linguistic / structural unit (character, word, sentence, syllable, …)
+    "unit",
     # NE-derived slot names (from extractor._NE_TO_SLOT)
     "date", "location", "event", "law", "cardinal", "ordinal",
     "quantity", "percent", "money", "time",
@@ -112,7 +114,7 @@ _SUFFIX_CANONICAL: frozenset[str] = frozenset({
     "topic", "description", "passage", "question", "context", "source",
     "code", "keyword", "language", "person", "number", "option",
     "completion", "tone", "style", "format", "role", "category",
-    "title", "subject", "task", "content", "example",
+    "title", "subject", "task", "content", "example", "unit",
     # multi-word forms matched as two-component suffixes
     "text_type", "programming_language",
 })
@@ -144,6 +146,41 @@ _COMPOUND_SLOT_REMAP: dict[str, str] = {
     "discussion_topic":      "topic",
     "main_topic":            "topic",
     "programming_task":      "topic",
+    # casing / formatting slots → format
+    "first_char_case":       "format",
+    "char_case":             "format",
+    "casing_constraint":     "format",
+    "letter_case":           "format",
+    # alternation / sequencing rules → description
+    "alternation_rule":      "description",
+    "alternation_pattern":   "description",
+    "sequence_rule":         "description",
+    # length as a constraint → number
+    "length_constraint":     "number",
+    "length_requirement":    "number",
+    "word_count":            "number",
+    "min_length":            "number",
+    "max_length":            "number",
+    # type/category classifiers
+    "question_type":         "category",
+    "answer_type":           "category",
+    "document_type":         "category",
+    "response_type":         "category",
+    "output_type":           "category",
+    # source/material type → description (avoids slot collision with question_type)
+    "source_type":           "description",
+    # forbidden elements → keyword
+    "forbidden_words":       "keyword",
+    "forbidden_word":        "keyword",
+    "forbidden_element":     "keyword",
+    "restricted_word":       "keyword",
+    # column/field names → description
+    "column_names":          "description",
+    "column_name":           "description",
+    "field_names":           "description",
+    # linguistic unit qualifiers → unit
+    "text_unit":             "unit",
+    "linguistic_unit":       "unit",
 }
 
 

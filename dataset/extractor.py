@@ -47,6 +47,64 @@ from dataset.fix_slots import (
 
 import sys
 
+
+def _flatten_taxonomy_labels(taxonomy: dict) -> list[str]:
+    """Collect all leaf label names from a nested taxonomy dict.
+
+    The taxonomy has structure like:
+        {"task_type": {"information_tasks": {"question_answering": {...}, ...}, ...},
+         "format_constraint": {"length_constraint": {...}, ...}}
+
+    This returns the deepest dict-key names that map to non-dict values or
+    leaf dicts (containing 'level'/'description' but no nested sub-dicts).
+    Falls back to top-level keys when a branch has no nested dicts.
+    """
+    labels: list[str] = []
+
+    def _collect(d: dict) -> None:
+        for k, v in d.items():
+            if k.startswith("_"):
+                continue
+            if not isinstance(v, dict):
+                continue
+            # Check if v has nested dict children (i.e. is a branch)
+            children = {ck: cv for ck, cv in v.items()
+                        if not ck.startswith("_") and isinstance(cv, dict)}
+            # A branch has at least one child whose value is also a dict-of-dicts
+            has_deeper = any(
+                any(isinstance(gv, dict) for gk, gv in cv.items() if not gk.startswith("_"))
+                for cv in children.values()
+            )
+            if has_deeper:
+                _collect(v)
+            elif children:
+                # Children are leaf dicts — collect their names
+                labels.extend(children.keys())
+            else:
+                # v itself is a leaf (has metadata keys like level/description)
+                labels.append(k)
+
+    _collect(taxonomy)
+    # Deduplicate preserving order
+    seen: set[str] = set()
+    unique = []
+    for l in labels:
+        if l not in seen:
+            seen.add(l)
+            unique.append(l)
+    return unique or list(taxonomy.keys())
+
+
+def _label_in_group(label: str, group: dict) -> bool:
+    """Check if *label* appears as a key anywhere in a nested taxonomy group."""
+    for k, v in group.items():
+        if k == label:
+            return True
+        if isinstance(v, dict) and _label_in_group(label, v):
+            return True
+    return False
+
+
 # ── Extraction system prompt ──────────────────────────────────────────────
 
 _EXTRACTION_SYSTEM_PROMPT = """\
@@ -106,7 +164,8 @@ SLOT NAMING — you MUST use a canonical name. Inventing new slot names is the l
   `topic`, `description`, `text`, `passage`, `question`, `context`, `source`, `code`,
   `keyword`, `option`, `completion`, `language`, `programming_language`,
   `text_type`, `person`, `number` (for any count/quantity), `tone`, `style`, `format`,
-  `role`, `category`, `title`, `subject`, `task`, `content`, `example`.
+  `role`, `category`, `title`, `subject`, `task`, `content`, `example`,
+  `unit` (any linguistic/structural unit: character, word, sentence, syllable, paragraph).
 - ALL slot names are SINGULAR. For list-valued slots, emit one option per item \
 (all sharing the same slot name), not one option with a comma-separated string. \
 Example: keywords "python" and "NLP" → two options both with slot="keyword", \
@@ -127,6 +186,17 @@ NOT one option slot="keyword" value="python, NLP".
   ✓ slot="text_type" for "essay", "poem", "letter", "paragraph"
   ✗ template "Write an essay about {topic}" with no text_type slot — \
 "essay" should be {text_type}
+  ✓ slot="unit" for "character", "word", "sentence", "syllable", "paragraph"
+  ✗ template "The first character should be uppercase" with no unit slot — \
+"character" should be {unit}
+  ✓ slot="format" for "uppercase", "lowercase", "title case", "alternating case"
+  ✗ slot="first_char_case" or "casing_constraint" — use plain `format`
+  ✓ slot="keyword" for forbidden words/elements (things that must be excluded)
+  ✗ slot="forbidden_words" or "forbidden_element"
+  ✓ slot="number" for any length constraint ("300 words", "5 sentences")
+  ✗ slot="length_constraint" or "word_count"
+  ✓ slot="category" for type classifiers ("question_type", "answer_type")
+  ✗ slot="question_type" or "answer_type"
 - NEVER use a single letter (a, b, p, q, …) — use the full semantic name.
 - NEVER use numbered variants (option_1/option_2, n1/n2) — group into one slot \
 (e.g. `option`, `number_list`).
@@ -136,11 +206,48 @@ use `tone` or `style`).
 `source_language`, `input_text`, `target_code`). Use the bare canonical name.
 - Use `{code}` for full code blocks, not just variable names.
 
-MAXIMIZE GENERALITY — extract as many slots as possible:
+REUSABILITY IS MANDATORY — every template must be a pattern that works with MANY \
+different option values. Ask yourself: "can I plug in 10 different values for each \
+slot and still get a coherent, useful prompt?" If not, do NOT extract it.
+
+WHEN NOT TO DECOMPOSE:
+- If the segment is a factual paragraph, encyclopedic text, problem statement, \
+worked example, or any self-contained block of content, the ENTIRE text is ONE \
+option value for a single slot (passage, context, description). Do NOT break it \
+into sub-parts. The template should be minimal (e.g. just "{passage}" or \
+"Given the following context: {context}") with the text as the option.
+- Test-case inputs, specific answers, worked-example data, and other values that \
+are meaningful ONLY in the context of one specific problem MUST stay as literal \
+text — do NOT extract them as separate options.
+- Example: a prompt about swapping cards "a, b, c" should keep "abc", "acb", "bac" \
+as literal text, NOT extract each permutation as a separate option.
+- If a template has a specific sentence fragment that only makes sense for one \
+topic (e.g. "The x86 family is a bit different."), it is NOT reusable — make the \
+whole thing a {passage} or {context} instead.
+
+TIGHTLY-COUPLED SLOTS:
+- When multiple values in a prompt are semantically linked (e.g. an author + their \
+book title + a quote from that book), they SHOULD be combined into fewer, larger \
+slots rather than many small ones. Prefer "{passage}" or "{context}" over separate \
+{author}, {title}, {quote} slots when the values are meaningless without each other.
+- Rule: if changing one slot value requires changing another to stay coherent, \
+merge them into a single slot.
+
+MAXIMIZE GENERALITY — extract as many REUSABLE slots as possible:
 - If a specific word or phrase in the template could be replaced with a different \
 value to produce a valid prompt of the same type, it SHOULD be a slot.
-- "Write an essay about climate change" → "Write a {text_type} about {topic}" \
-with options text_type="essay", topic="climate change".
+- TEXT-TYPE WORDS (essay, poem, letter, report, article, paragraph, story, summary, \
+speech, blog post, review, script, email, memo) → ALWAYS make these {text_type}.
+  ✓ "The essay should be a minimum of {number} words" → \
+"The {text_type} should be a minimum of {number} words"
+  ✓ "Write an essay about climate change" → "Write a {text_type} about {topic}"
+- LINGUISTIC UNIT WORDS (character, word, sentence, syllable, paragraph, line, \
+letter, token) → ALWAYS make these {unit} when they refer to a structural unit \
+that could be swapped.
+  ✓ "The first character should be in uppercase" → \
+"The first {unit} should be in {format}"
+  ✓ "alternate capitalization of characters" → \
+"alternate {format} of {unit}s"
 - "How many people in the room are more than six feet tall?" → \
 "How many {topic} in {context} are more than {number} {description}?" \
 or a simpler split that still captures the variable parts.
@@ -208,6 +315,7 @@ def _build_messages(
     taxonomy_labels: list[str],
     dataset_name: str | None = None,
     segment_hint: str | None = None,
+    slot_vocabulary: str = "",
 ) -> list[dict[str, str]]:
     labels_str = json.dumps(taxonomy_labels)
     few_shot = _get_few_shot_messages(dataset_name, taxonomy_labels)
@@ -215,10 +323,11 @@ def _build_messages(
         f"[This segment has been pre-classified as: {segment_hint} — use this as context only, do NOT extract it as a slot or option.]\n\n"
         if segment_hint else ""
     )
+    vocab_section = f"\n\n{slot_vocabulary}" if slot_vocabulary else ""
     return [
         {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
         *few_shot,
-        {"role": "user", "content": f"Taxonomy labels: {labels_str}\n\n{hint_line}Prompt:\n\"{prompt}\""},
+        {"role": "user", "content": f"Taxonomy labels: {labels_str}{vocab_section}\n\n{hint_line}Prompt:\n\"{prompt}\""},
     ]
 
 
@@ -318,6 +427,71 @@ def _repair_json(raw: str) -> dict:
     )
 
 
+# Slot → most likely compatible taxonomy levels.
+# Used when the LLM outputs unrecognized labels and we need a fallback.
+_SLOT_TO_LEVEL: dict[str, list[str]] = {
+    # Content slots → typically fill task_type templates
+    "topic":       ["task_type"],
+    "subject":     ["task_type"],
+    "passage":     ["task_type"],
+    "context":     ["task_type"],
+    "text":        ["task_type"],
+    "question":    ["task_type"],
+    "code":        ["task_type"],
+    "person":      ["task_type"],
+    "title":       ["task_type"],
+    "quote":       ["task_type"],
+    "author":      ["task_type"],
+    "source":      ["task_type"],
+    "role":        ["task_type"],
+    "task":        ["task_type"],
+    "content":     ["task_type"],
+    "example":     ["task_type"],
+    "category":    ["task_type"],
+    "text_type":   ["task_type"],
+    "content_type":["task_type"],
+    # Format/structure slots → format_constraint
+    "format":      ["format_constraint"],
+    "number":      ["format_constraint", "task_type"],
+    "unit":        ["format_constraint"],
+    "keyword":     ["format_constraint"],
+    "option_label":["format_constraint"],
+    # Style slots → content_style_constraint
+    "style":       ["content_style_constraint"],
+    "tone":        ["content_style_constraint"],
+    "language":    ["content_style_constraint", "task_type"],
+    "programming_language": ["task_type"],
+    # Descriptive slots → can appear anywhere
+    "description": ["task_type", "format_constraint", "content_style_constraint"],
+    "completion":  ["task_type"],
+}
+
+
+def _infer_compatible_types_from_slot(slot: str, taxonomy: dict | None = None) -> list[str]:
+    """Infer compatible_task_types from the slot name when the LLM output is invalid.
+
+    Returns leaf labels from the taxonomy. If taxonomy is provided, expands
+    level names (e.g. "task_type") into their leaf labels.
+    """
+    slot_lower = slot.strip().lower()
+    level_names = _SLOT_TO_LEVEL.get(slot_lower, ["task_type"])
+
+    if taxonomy is None:
+        return list(level_names)
+
+    # Expand level names → leaf labels from taxonomy
+    all_leaves = _flatten_taxonomy_labels(taxonomy)
+    result: list[str] = []
+    for level in level_names:
+        if level in taxonomy and isinstance(taxonomy[level], dict):
+            # Collect leaves under this level group
+            group_leaves = [l for l in all_leaves if _label_in_group(l, taxonomy[level])]
+            result.extend(group_leaves)
+        else:
+            result.append(level)
+    return result or all_leaves  # if nothing matched, be permissive
+
+
 def _parse_llm_extraction(
     raw: str,
     taxonomy: dict,
@@ -338,7 +512,7 @@ def _parse_llm_extraction(
     raw_options = _remove_broken_options(raw_options)
 
     valid_levels = set(LEVELS)
-    valid_task_types = set(taxonomy.keys())
+    valid_task_types = set(_flatten_taxonomy_labels(taxonomy))
 
     templates: list[TaskTemplate] = []
     options: list[Option] = []
@@ -356,7 +530,16 @@ def _parse_llm_extraction(
         # Remap old level names if present
         level = LEVEL_REMAP.get(level, level)
         if level not in valid_levels:
-            level = taxonomy.get(task_type, {}).get("level", "task_type")
+            # Infer level from the top-level taxonomy group this label belongs to
+            inferred_level = "task_type"
+            for group_name in taxonomy:
+                if group_name.startswith("_"):
+                    continue
+                group = taxonomy[group_name]
+                if isinstance(group, dict) and _label_in_group(task_type, group):
+                    inferred_level = group_name
+                    break
+            level = inferred_level
 
         if level == "task_type" and not slots:
             logger.warning(f"  task_type template with 0 slots: '{text[:80]}…'")
@@ -384,7 +567,8 @@ def _parse_llm_extraction(
 
         compat_types = [ct for ct in compat_types if ct in valid_task_types]
         if not compat_types:
-            compat_types = ["_universal"]
+            # Infer from slot semantics rather than giving up with _universal
+            compat_types = _infer_compatible_types_from_slot(slot, taxonomy)
 
         oid = option_id(slot, value)
         options.append(Option(
@@ -396,6 +580,112 @@ def _parse_llm_extraction(
         ))
 
     return templates, options
+
+
+# ── Reusability filter ────────────────────────────────────────────────────
+
+def _filter_non_reusable(
+    templates: list[TaskTemplate],
+    options: list[Option],
+) -> tuple[list[TaskTemplate], list[Option]]:
+    """Remove templates that are not reusable patterns.
+
+    Catches:
+    - Templates where the fixed (non-slot) text is too specific to one topic
+      (high ratio of fixed text to slot text, with domain-specific words)
+    - Templates that are just "{slot}" with no framing at all
+    - Templates with very long fixed text that's clearly a passage fragment
+    """
+    kept_templates: list[TaskTemplate] = []
+    removed_ids: set[str] = set()
+
+    for t in templates:
+        text = t.text.strip()
+        # Remove slot placeholders to get the fixed framing
+        fixed = re.sub(r"\{[\w]+\}", "", text).strip()
+        fixed_words = fixed.split()
+
+        # Template is ONLY a slot placeholder — not a useful pattern
+        if not fixed and len(t.slots) == 1:
+            removed_ids.add(t.id)
+            logger.info(f"  Dropping bare-slot template: {text!r}")
+            continue
+
+        # Fixed text is very long (>20 words) — likely a passage fragment,
+        # not a reusable pattern
+        if len(fixed_words) > 20:
+            removed_ids.add(t.id)
+            logger.info(
+                f"  Dropping non-reusable template (fixed text too long: "
+                f"{len(fixed_words)} words): {text[:80]!r}…"
+            )
+            continue
+
+        kept_templates.append(t)
+
+    if not removed_ids:
+        return templates, options
+
+    # Remove options that were ONLY linked to removed templates
+    kept_options: list[Option] = []
+    for o in options:
+        o.compatible_templates = [
+            tid for tid in o.compatible_templates if tid not in removed_ids
+        ]
+        kept_options.append(o)
+
+    return kept_templates, kept_options
+
+
+def _filter_undercovered_templates(
+    templates: list[TaskTemplate],
+    options: list[Option],
+) -> tuple[list[TaskTemplate], list[Option]]:
+    """Remove templates where all slots are singletons (only 1 option value).
+
+    A template whose every slot has exactly one known value cannot produce any
+    variation during generation — it is effectively a hard-coded example (e.g.
+    a specific author/title/quote triple) rather than a reusable pattern.
+    """
+    # Build slot → set of distinct option values
+    slot_values: dict[str, set[str]] = defaultdict(set)
+    for o in options:
+        slot_values[o.slot].add(o.value)
+
+    kept: list[TaskTemplate] = []
+    removed_ids: set[str] = set()
+
+    for t in templates:
+        if not t.slots:
+            kept.append(t)
+            continue
+        # Count how many slots have >1 distinct value
+        variable_slots = sum(
+            1 for s in t.slots
+            if len(slot_values.get(s, set())) > 1
+        )
+        if variable_slots == 0:
+            # Every slot has 0 or 1 option → no variation possible
+            removed_ids.add(t.id)
+            logger.info(
+                f"  Dropping singleton-slot template (0/{len(t.slots)} "
+                f"slots have >1 option): {t.text[:80]!r}"
+            )
+        else:
+            kept.append(t)
+
+    if not removed_ids:
+        return templates, options
+
+    logger.info(f"  Singleton-slot filter removed {len(removed_ids)} templates")
+
+    # Clean up option→template links
+    for o in options:
+        o.compatible_templates = [
+            tid for tid in o.compatible_templates if tid not in removed_ids
+        ]
+
+    return kept, options
 
 
 # ── Merge helper ──────────────────────────────────────────────────────────
@@ -433,7 +723,7 @@ def extract_templates_from_prompt_llm(
     dataset_name: str | None = None,
 ) -> tuple[list[TaskTemplate], list[Option]]:
     """Decompose a single prompt into templates and options via LLM."""
-    taxonomy_labels = list(taxonomy.keys())
+    taxonomy_labels = _flatten_taxonomy_labels(taxonomy)
     messages = _build_messages(prompt, taxonomy_labels, dataset_name)
     try:
         raw = _local_generate(
@@ -568,38 +858,51 @@ def _extract_segmented_llm(
         logger.info(f"  Segmentation results saved to {SEGMENTS_PATH}")
 
     # ── Stage B: LLM extraction per segment (batched) ─────────────────
-    # Flatten all segments and build extraction messages
-    taxonomy_labels = list(taxonomy.keys())
+    # The option taxonomy starts from any prior run saved on disk, then grows
+    # batch by batch: after each batch, newly extracted options are added to
+    # the in-memory taxonomy and the updated context is used for the next batch.
+    from dataset.option_taxonomy import OptionTaxonomy
+    opt_taxonomy = OptionTaxonomy.load()
+    if opt_taxonomy.types:
+        logger.info(
+            f"  Option taxonomy loaded from disk: {len(opt_taxonomy.types)} types."
+        )
+
+    # Flatten all segments
+    taxonomy_labels = _flatten_taxonomy_labels(taxonomy)
     flat_segments = []
-    all_msgs = []
 
     for segments in all_prompt_segments:
         for seg in segments:
             if not seg.span_text.strip():
                 continue
             flat_segments.append(seg)
-            dataset_name = source_map.get(seg.source_prompt)
-            all_msgs.append(
-                _build_messages(
-                    seg.span_text,
-                    taxonomy_labels,
-                    dataset_name,
-                    segment_hint=f"{seg.taxonomy_label} ({seg.level})",
-                )
-            )
 
     logger.info(
         f"  Extracting templates from {len(flat_segments)} segments "
         f"via LLM (batch_size={batch_size})…"
     )
 
-    # Batch LLM calls
+    # Batch LLM calls — taxonomy context is rebuilt after each batch
     failures = 0
-    n_batches = (len(all_msgs) + batch_size - 1) // batch_size
-    pbar = tqdm(range(0, len(all_msgs), batch_size), total=n_batches, desc="Extracting", unit="batch")
+    n_batches = (len(flat_segments) + batch_size - 1) // batch_size
+    pbar = tqdm(range(0, len(flat_segments), batch_size), total=n_batches, desc="Extracting", unit="batch")
     for batch_start in pbar:
-        batch_msgs = all_msgs[batch_start: batch_start + batch_size]
         batch_segs = flat_segments[batch_start: batch_start + batch_size]
+        new_opts_this_seg: list[Option] = []
+
+        # Snapshot current taxonomy context for this batch
+        slot_vocab = opt_taxonomy.to_prompt_context()
+        batch_msgs = [
+            _build_messages(
+                seg.span_text,
+                taxonomy_labels,
+                source_map.get(seg.source_prompt),
+                segment_hint=f"{seg.taxonomy_label} ({seg.level})",
+                slot_vocabulary=slot_vocab,
+            )
+            for seg in batch_segs
+        ]
 
         try:
             raws = _local_generate_batch(
@@ -630,15 +933,23 @@ def _extract_segmented_llm(
                 logger.warning(f"  Parse failed for segment: {e}")
                 failures += 1
                 continue
+            tmpls, opts = _filter_non_reusable(tmpls, opts)
             if not tmpls and not opts:
                 failures += 1
             _merge_into_store(all_templates, all_options, tmpls, opts)
+            new_opts_this_seg.extend(opts)
+
+        # Update in-memory taxonomy with options extracted from this batch,
+        # so the next batch sees the most current slot vocabulary as context
+        opt_taxonomy.update_from_options(new_opts_this_seg)
 
     logger.info(
         f"Segmented LLM extraction done: {len(all_templates)} templates, "
         f"{len(all_options)} options, {failures} failures"
     )
-    return list(all_templates.values()), list(all_options.values())
+    final_t, final_o = list(all_templates.values()), list(all_options.values())
+    final_t, final_o = _filter_undercovered_templates(final_t, final_o)
+    return final_t, final_o
 
 
 def _extract_llm_single_pass(
@@ -653,7 +964,7 @@ def _extract_llm_single_pass(
     """Original single-pass LLM extraction (A/B test path)."""
     all_templates: dict[str, TaskTemplate] = {}
     all_options: dict[str, Option] = {}
-    taxonomy_labels = list(taxonomy.keys())
+    taxonomy_labels = _flatten_taxonomy_labels(taxonomy)
     failures = 0
 
     valid_records = [r for r in prompts if r.get("prompt", "").strip()]
@@ -695,7 +1006,9 @@ def _extract_llm_single_pass(
         f"Extraction done: {len(all_templates)} templates, "
         f"{len(all_options)} options, {failures} failures"
     )
-    return list(all_templates.values()), list(all_options.values())
+    final_t, final_o = list(all_templates.values()), list(all_options.values())
+    final_t, final_o = _filter_undercovered_templates(final_t, final_o)
+    return final_t, final_o
 
 
 # ── LLM batch slot reclassification ──────────────────────────────────────

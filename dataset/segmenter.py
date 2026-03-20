@@ -261,7 +261,7 @@ def segment_and_classify_batch(
         logger.error("No model provided; returning each prompt as a single 'description' segment.")
         raise ValueError("Model name must be provided for LLM-based segmentation.")
 
-    from dataset.local_llm import generate_text_batch
+    from dataset.local_llm import generate_text_batch, load_model as _load_model
 
     taxonomy_desc = _build_taxonomy_description(taxonomy)
     valid_labels = set(taxonomy._entries.keys())
@@ -273,10 +273,38 @@ def segment_and_classify_batch(
 
     all_segments: list[list[Segment]] = []
 
+    # Pre-load tokenizer to check prompt lengths before sending to vLLM.
+    # max_model_len (8192) minus max_new_tokens (2048) minus safety margin.
+    _llm = _load_model(model, device=device, gpu_memory_utilization=gpu_memory_utilization)
+    _tokenizer = _llm.get_tokenizer()
+    _MAX_INPUT_TOKENS = 8192 - 2048 - 64
+
     n_batches = (len(prompts) + batch_size - 1) // batch_size
     pbar = tqdm(range(0, len(prompts), batch_size), total=n_batches, desc="Segmenting", unit="batch")
     for batch_start in pbar:
         batch_prompts = prompts[batch_start: batch_start + batch_size]
+
+        # Filter out prompts that would exceed max_model_len.
+        safe_prompts: list[str] = []
+        skipped: dict[int, str] = {}
+        for i, prompt in enumerate(batch_prompts):
+            user_content = (
+                f"## Available taxonomy labels\n{taxonomy_desc}\n\n"
+                f"## Prompt to segment\n\"{prompt}\""
+            )
+            msgs = [
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": user_content},
+            ]
+            n_tokens = len(_tokenizer.apply_chat_template(msgs, add_generation_prompt=True))
+            if n_tokens > _MAX_INPUT_TOKENS:
+                logger.warning(
+                    f"  Skipping prompt ({n_tokens} tokens > {_MAX_INPUT_TOKENS}): "
+                    f"{prompt[:80]!r}..."
+                )
+                skipped[i] = prompt
+            else:
+                safe_prompts.append(prompt)
 
         messages_batch = [
             [
@@ -289,7 +317,7 @@ def segment_and_classify_batch(
                     ),
                 },
             ]
-            for prompt in batch_prompts
+            for prompt in safe_prompts
         ]
 
         # Thinking mode and guided JSON decoding can conflict in vLLM:
@@ -297,42 +325,68 @@ def segment_and_classify_batch(
         # decoding may reject them.  Try with both enabled first; on failure
         # retry with guided decoding disabled — the prompt instructions +
         # _parse_llm_output validation still enforce the schema.
-        try:
-            raws = generate_text_batch(
-                model, messages_batch,
-                temperature=0.0, device=device,
-                enable_thinking=True, json_schema=segment_model,
-                gpu_memory_utilization=gpu_memory_utilization,
-            )
-        except Exception:
-            logger.info(
-                "  Thinking + guided decoding failed; "
-                "retrying with guided decoding disabled."
-            )
+        if safe_prompts:
             try:
                 raws = generate_text_batch(
                     model, messages_batch,
                     temperature=0.0, device=device,
-                    enable_thinking=True, json_schema=None,
+                    enable_thinking=True, json_schema=segment_model,
                     gpu_memory_utilization=gpu_memory_utilization,
                 )
-            except Exception as exc:
-                logger.error(f"  LLM segmentation batch failed: {exc}")
-                raise RuntimeError(f"LLM segmentation batch failed: {exc}") from exc
+            except Exception:
+                logger.info(
+                    "  Thinking + guided decoding failed; "
+                    "retrying with guided decoding disabled."
+                )
+                try:
+                    raws = generate_text_batch(
+                        model, messages_batch,
+                        temperature=0.0, device=device,
+                        enable_thinking=True, json_schema=None,
+                        gpu_memory_utilization=gpu_memory_utilization,
+                    )
+                except Exception as exc:
+                    logger.error(f"  LLM segmentation batch failed: {exc}")
+                    raise RuntimeError(f"LLM segmentation batch failed: {exc}") from exc
+        else:
+            raws = []
 
-        for prompt, raw in zip(batch_prompts, raws):
-            segments = _parse_llm_output(raw, prompt, valid_labels, label_level_map)
-            all_segments.append(segments)
+        # Parse LLM results for safe prompts
+        safe_results: list[list[Segment]] = []
+        for prompt, raw in zip(safe_prompts, raws):
+            safe_results.append(_parse_llm_output(raw, prompt, valid_labels, label_level_map))
+
+        # Merge back: insert fallback segments for skipped (over-length) prompts
+        safe_iter = iter(safe_results)
+        for i, prompt in enumerate(batch_prompts):
+            if i in skipped:
+                all_segments.append([Segment(
+                    span_text=prompt,
+                    taxonomy_label="description",
+                    level="task_type",
+                    source_prompt=prompt,
+                    classification_method="skipped_long",
+                )])
+            else:
+                all_segments.append(next(safe_iter))
 
     total = sum(len(s) for s in all_segments)
     n_ok = sum(
         1 for segs in all_segments for seg in segs
         if seg.classification_method == "llm"
     )
+    n_skipped = sum(
+        1 for segs in all_segments for seg in segs
+        if seg.classification_method == "skipped_long"
+    )
     if total:
         logger.info(
             f"  Segmentation: {total} clauses from {len(prompts)} prompts; "
             f"LLM classified: {n_ok}/{total} ({100 * n_ok // total}%)"
+        )
+    if n_skipped:
+        logger.warning(
+            f"  {n_skipped} prompts skipped (too long for max_model_len={8192})"
         )
 
     return all_segments
