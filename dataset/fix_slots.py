@@ -184,20 +184,48 @@ _COMPOUND_SLOT_REMAP: dict[str, str] = {
 }
 
 
+# Trailing collection/plurality suffixes that should be stripped to reveal
+# the canonical base slot (e.g. "animal_list" → "animal", "topic_names" → "topic").
+# Only stripped when the base is itself a recognised canonical slot or when the
+# stripped form matches via the suffix/remap rules below.
+_COLLECTION_SUFFIXES: tuple[str, ...] = (
+    "_list", "_array", "_set", "_options", "_values", "_types",
+    "_names", "_items", "_elements", "_entries",
+)
+
+
 def _canonicalize_compound_slot(slot: str) -> str | None:
     """Map a compound slot name to a canonical form, or return None if unknown.
 
     Priority:
     1. Manual override (_COMPOUND_SLOT_REMAP).
-    2. Two-component suffix (e.g. ``text_type``, ``programming_language``).
-    3. Single-component suffix (e.g. ``description``, ``topic``).
+    2. Strip collection suffixes (_list, _array, _set, …) then re-check.
+    3. Two-component suffix (e.g. ``text_type``, ``programming_language``).
+    4. Single-component suffix (e.g. ``description``, ``topic``).
     """
     lower = slot.lower()
     if lower in _COMPOUND_SLOT_REMAP:
         return _COMPOUND_SLOT_REMAP[lower]
 
+    # Strip collection suffixes: "animal_list" → "animal"
+    for suffix in _COLLECTION_SUFFIXES:
+        if lower.endswith(suffix) and len(lower) > len(suffix):
+            base = lower[:-len(suffix)]
+            # If the base is a canonical slot, use it directly
+            if base in _CANONICAL_PREFERRED_SLOTS:
+                return base
+            # If the base matches a remap, follow it
+            if base in _COMPOUND_SLOT_REMAP:
+                return _COMPOUND_SLOT_REMAP[base]
+            # Otherwise strip the suffix and continue with suffix matching
+            lower = base
+            break
+
     parts = lower.split("_")
     if len(parts) < 2:
+        # After suffix stripping, may be a single word — check canonical
+        if lower in _CANONICAL_PREFERRED_SLOTS:
+            return lower
         return None
 
     two_suffix = "_".join(parts[-2:])

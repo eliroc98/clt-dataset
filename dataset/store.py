@@ -259,6 +259,46 @@ class TemplateStore:
             json.dump(augmented, f, indent=2, ensure_ascii=False)
         logger.info(f"  Augmented options saved → {augmented_path} ({len(augmented)} entries)")
 
+    def relink(self) -> None:
+        """Rebuild option↔template links from current slot names.
+
+        For each option, ``compatible_templates`` is rebuilt by scanning all
+        templates whose ``slots`` list contains the option's slot name.
+        For each template, ``compatible_with`` is rebuilt as the list of
+        option IDs whose slot appears in that template.
+
+        This should be called after normalization / filtering to repair
+        stale links.
+        """
+        # Build slot → template_ids index
+        slot_to_templates: dict[str, list[str]] = defaultdict(list)
+        for tmpl in self.templates.values():
+            for slot in tmpl.slots:
+                slot_to_templates[slot].append(tmpl.id)
+
+        # Rebuild option → compatible_templates
+        for opt in self.options.values():
+            opt.compatible_templates = list(slot_to_templates.get(opt.slot, []))
+
+        # Rebuild template → compatible_with (option IDs)
+        slot_to_option_ids: dict[str, list[str]] = defaultdict(list)
+        for opt in self.options.values():
+            slot_to_option_ids[opt.slot].append(opt.id)
+
+        for tmpl in self.templates.values():
+            compat: list[str] = []
+            for slot in tmpl.slots:
+                compat.extend(slot_to_option_ids.get(slot, []))
+            tmpl.compatible_with = compat
+
+        n_orphaned = sum(
+            1 for o in self.options.values() if not o.compatible_templates
+        )
+        logger.info(
+            f"  Relinked {len(self.options)} options ↔ {len(self.templates)} templates "
+            f"({n_orphaned} options still orphaned)"
+        )
+
     @classmethod
     def load(
         cls,

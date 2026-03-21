@@ -236,6 +236,9 @@ def _test_substitution(
     return failures
 
 
+_VALIDATION_BATCH_SIZE = 500  # sub-batch size for LLM classification
+
+
 def _classify_substitutions_llm(
     filled_items: list[tuple[TaskTemplate, str]],
     *,
@@ -243,8 +246,16 @@ def _classify_substitutions_llm(
     device: str | None,
     gpu_memory_utilization: float,
 ) -> list[bool]:
-    """Use an LLM to classify whether each filled prompt matches its task type."""
+    """Use an LLM to classify whether each filled prompt matches its task type.
+
+    Splits the work into sub-batches of _VALIDATION_BATCH_SIZE to avoid
+    OOM crashes when the full set is too large for a single vLLM call.
+    """
     from dataset.local_llm import generate_text_batch
+    from pydantic import BaseModel
+
+    class MatchResponse(BaseModel):
+        match: bool
 
     messages_batch = []
     for tmpl, filled in filled_items:
@@ -259,19 +270,30 @@ def _classify_substitutions_llm(
 
     logger.info(f"  LLM substitution classification: {len(messages_batch)} prompts…")
 
-    try:
-        raws = generate_text_batch(
-            model, messages_batch,
-            temperature=0.0, device=device,
-            enable_thinking=False,
-            gpu_memory_utilization=gpu_memory_utilization,
-        )
-    except Exception as e:
-        logger.warning(f"  LLM classification failed: {e}; falling back to all-fail")
-        return [False] * len(filled_items)
+    all_raws: list[str] = []
+    n_batches = (len(messages_batch) + _VALIDATION_BATCH_SIZE - 1) // _VALIDATION_BATCH_SIZE
+    for batch_idx in range(n_batches):
+        start = batch_idx * _VALIDATION_BATCH_SIZE
+        end = min(start + _VALIDATION_BATCH_SIZE, len(messages_batch))
+        sub_batch = messages_batch[start:end]
+        try:
+            raws = generate_text_batch(
+                model, sub_batch,
+                temperature=0.0, device=device,
+                enable_thinking=False,
+                json_schema=MatchResponse,
+                gpu_memory_utilization=gpu_memory_utilization,
+            )
+            all_raws.extend(raws)
+        except Exception as e:
+            logger.warning(
+                f"  LLM classification failed on batch {batch_idx + 1}/{n_batches}: {e}; "
+                f"marking {len(sub_batch)} items as fail"
+            )
+            all_raws.extend([""] * len(sub_batch))
 
     results: list[bool] = []
-    for raw in raws:
+    for raw in all_raws:
         raw = raw.strip()
         # Try to extract {"match": true/false}
         try:

@@ -433,6 +433,10 @@ Output ONLY the JSON list, no explanation.\
 """
 
 
+_LONG_VALUE_BATCH_SIZE = 50   # items per LLM call for long-value classification
+_TAXONOMY_SLOT_BATCH_SIZE = 15  # slot groups per LLM call for taxonomy build
+
+
 def _classify_long_values_llm(
     long_values: list[tuple[int, str]],
     *,
@@ -440,6 +444,9 @@ def _classify_long_values_llm(
     device: str | None,
 ) -> dict[int, str]:
     """Use the LLM to classify long text values by functional role.
+
+    Splits into sub-batches of _LONG_VALUE_BATCH_SIZE to avoid exceeding
+    max_model_len.
 
     Parameters
     ----------
@@ -455,41 +462,57 @@ def _classify_long_values_llm(
     if not long_values:
         return {}
 
-    # Prepare input — truncate to keep prompt manageable
-    items = [{"id": idx, "value": v[:200]} for idx, v in long_values]
-    messages = [
-        {"role": "system", "content": _ROLE_CLASSIFICATION_PROMPT},
-        {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
-    ]
+    all_results: dict[int, str] = {}
+    n_batches = (len(long_values) + _LONG_VALUE_BATCH_SIZE - 1) // _LONG_VALUE_BATCH_SIZE
 
-    try:
-        raw = _generate(
-            model, messages,
-            temperature=0.0, device=device,
-            enable_thinking=False,
-        )
-    except Exception as exc:
-        logger.warning(f"  Long-value classification failed: {exc}")
-        return {}
+    for batch_idx in range(n_batches):
+        start = batch_idx * _LONG_VALUE_BATCH_SIZE
+        end = min(start + _LONG_VALUE_BATCH_SIZE, len(long_values))
+        batch = long_values[start:end]
 
-    # Parse response
-    raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```\s*$", "", raw)
-    try:
-        results = json.loads(raw)
-        return {r["id"]: r["role"] for r in results if "id" in r and "role" in r}
-    except (json.JSONDecodeError, KeyError):
-        m = re.search(r'\[.*\]', raw, re.DOTALL)
-        if m:
-            try:
-                results = json.loads(m.group(0))
-                return {r["id"]: r["role"] for r in results if "id" in r and "role" in r}
-            except (json.JSONDecodeError, KeyError):
-                pass
-    logger.warning("  Could not parse long-value classification response")
-    return {}
+        items = [{"id": idx, "value": v[:200]} for idx, v in batch]
+        messages = [
+            {"role": "system", "content": _ROLE_CLASSIFICATION_PROMPT},
+            {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
+        ]
+
+        try:
+            raw = _generate(
+                model, messages,
+                temperature=0.0, device=device,
+                enable_thinking=False,
+            )
+        except Exception as exc:
+            logger.warning(
+                f"  Long-value classification failed on batch "
+                f"{batch_idx + 1}/{n_batches}: {exc}"
+            )
+            continue
+
+        # Parse response
+        raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```\s*$", "", raw)
+        try:
+            results = json.loads(raw)
+            all_results.update(
+                {r["id"]: r["role"] for r in results if "id" in r and "role" in r}
+            )
+        except (json.JSONDecodeError, KeyError):
+            m = re.search(r'\[.*\]', raw, re.DOTALL)
+            if m:
+                try:
+                    results = json.loads(m.group(0))
+                    all_results.update(
+                        {r["id"]: r["role"] for r in results if "id" in r and "role" in r}
+                    )
+                except (json.JSONDecodeError, KeyError):
+                    pass
+
+    if not all_results and long_values:
+        logger.warning("  Could not parse any long-value classification responses")
+    return all_results
 
 
 def _prepare_input(
@@ -636,48 +659,79 @@ def build_option_taxonomy(
             f"values mapped across {len(wn_hints)} slots"
         )
 
-    user_content = json.dumps(input_data, ensure_ascii=False)
-    if wn_context:
-        user_content += "\n\n" + wn_context
+    # Split slots into batches to stay within max_model_len
+    slot_names = list(input_data.keys())
+    n_batches = (len(slot_names) + _TAXONOMY_SLOT_BATCH_SIZE - 1) // _TAXONOMY_SLOT_BATCH_SIZE
+    logger.info(
+        f"  Taxonomy build: {len(slot_names)} slots in {n_batches} batches "
+        f"(batch_size={_TAXONOMY_SLOT_BATCH_SIZE})"
+    )
 
-    messages = [
-        {"role": "system", "content": _BUILD_SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
-    ]
-
-    try:
-        raw = _generate(
-            model, messages,
-            temperature=0.0, device=device,
-            enable_thinking=False,
-        )
-    except Exception as exc:
-        logger.warning(f"  Taxonomy LLM call failed: {exc}")
-        return OptionTaxonomy()
-
-    entries = _parse_taxonomy_response(raw)
     types: dict[str, OptionType] = {}
-    for entry in entries:
-        name = entry.get("name", "").strip().lower()
-        category = entry.get("category", "").strip().lower() or name
-        desc = entry.get("description", "").strip()
-        compat = [s.strip() for s in entry.get("compatible_slots", []) if s.strip()]
-        # Strip functional-role tags (e.g. "[factual_context] …") from examples
-        examples = [
-            re.sub(r"^\[[\w]+\]\s*", "", v) for v in entry.get("example_values", []) if v
-        ][:8]
-        if not name or not desc:
+    for batch_idx in range(n_batches):
+        start = batch_idx * _TAXONOMY_SLOT_BATCH_SIZE
+        end = min(start + _TAXONOMY_SLOT_BATCH_SIZE, len(slot_names))
+        batch_slots = slot_names[start:end]
+        batch_data = {s: input_data[s] for s in batch_slots}
+
+        # Build WordNet context only for this batch's slots
+        batch_wn = {s: wn_hints[s] for s in batch_slots if s in wn_hints}
+        batch_wn_context = _format_wordnet_context(batch_wn)
+
+        user_content = json.dumps(batch_data, ensure_ascii=False)
+        if batch_wn_context:
+            user_content += "\n\n" + batch_wn_context
+
+        messages = [
+            {"role": "system", "content": _BUILD_SYSTEM_PROMPT},
+            {"role": "user", "content": user_content},
+        ]
+
+        try:
+            raw = _generate(
+                model, messages,
+                temperature=0.0, device=device,
+                enable_thinking=False,
+            )
+        except Exception as exc:
+            logger.warning(
+                f"  Taxonomy LLM call failed on batch "
+                f"{batch_idx + 1}/{n_batches}: {exc}"
+            )
             continue
-        # ensure name is in its own compatible_slots
-        if name not in compat:
-            compat.insert(0, name)
-        types[name] = OptionType(
-            name=name,
-            category=category,
-            description=desc,
-            compatible_slots=compat,
-            example_values=examples,
-        )
+
+        entries = _parse_taxonomy_response(raw)
+        for entry in entries:
+            name = entry.get("name", "").strip().lower()
+            category = entry.get("category", "").strip().lower() or name
+            desc = entry.get("description", "").strip()
+            compat = [s.strip() for s in entry.get("compatible_slots", []) if s.strip()]
+            # Strip functional-role tags (e.g. "[factual_context] …") from examples
+            examples = [
+                re.sub(r"^\[[\w]+\]\s*", "", v) for v in entry.get("example_values", []) if v
+            ][:8]
+            if not name or not desc:
+                continue
+            # ensure name is in its own compatible_slots
+            if name not in compat:
+                compat.insert(0, name)
+            if name in types:
+                # Merge with existing type from a previous batch
+                existing = types[name]
+                for s in compat:
+                    if s not in existing.compatible_slots:
+                        existing.compatible_slots.append(s)
+                for ex in examples:
+                    if ex not in existing.example_values and len(existing.example_values) < 8:
+                        existing.example_values.append(ex)
+            else:
+                types[name] = OptionType(
+                    name=name,
+                    category=category,
+                    description=desc,
+                    compatible_slots=compat,
+                    example_values=examples,
+                )
 
     taxonomy = OptionTaxonomy(types=types)
     logger.info(f"  Taxonomy built: {len(types)} types")

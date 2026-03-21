@@ -251,7 +251,11 @@ def run_normalization(
             f"{fs_level_fixes} level fixes"
         )
 
-    return TemplateStore.load(templates_path, options_path)
+    store = TemplateStore.load(templates_path, options_path)
+    store.relink()
+    # Persist the relinked data so downstream consumers get correct links
+    store.save(templates_path, options_path)
+    return store
 
 
 def run_augmentation(store: TemplateStore, seed: int = 42) -> None:
