@@ -8,6 +8,22 @@ Semi-synthetic dataset construction from minimally-changing prompts. Decomposes 
 
 Reverse-chronological log of attempts and strategies for constructing the database.
 
+### Phase 6: Specific Slot Naming (Mar 30)
+
+**`6a3dca3` — replace generic canonical slots with specific descriptive slot naming (Mar 30)**
+- **Design pivot:** replaced the small fixed vocabulary of generic canonical slots (`topic`, `description`, `text`, `passage`, …) with a "specific is better" naming philosophy — the slot name should predict what values fit.
+  - LLM extraction prompt now instructs the model to use the most descriptive `snake_case` name for each slot (e.g. `academic_subject` over `topic`, `writing_tone` over `tone`, `interviewee` over `person`).
+  - **Functional-role slots** introduced for paragraph/multi-sentence content: `source_passage`, `problem_statement`, `code_snippet`, `factual_background`, `input_data`, `example_context`.
+  - `CANONICAL_PREFERRED_SLOTS` reduced from ~30 entries to 3 universals (`text_type`, `unit`, `number`) plus the 6 functional-role slots.
+- **Compound-slot canonicalization simplified:** `_canonicalize_compound_slot()` no longer collapses qualified names to bare generics; only meaningless collection suffixes (`_list`, `_array`, …) are stripped. Removed `_COMPOUND_SLOT_REMAP` and `_SUFFIX_CANONICAL`.
+- **`reclassify_exotic_slots()` removed** — with specific naming, post-hoc LLM remapping to generics is counterproductive; the option taxonomy handles slot grouping.
+- **`_SLOT_TO_LEVEL` replaced by `_LEVEL_KEYWORDS`:** slot→taxonomy-level inference now uses lightweight keyword hints instead of a hardcoded slot-name lookup table.
+- **Per-segment taxonomy retrieval:** extraction batches now pass `query=seg.span_text` to `to_prompt_context()` for relevant context instead of a static snapshot.
+- `_TASK_TYPE_TO_DEFAULT_SLOT` and `_SELF_REP_VALUE_TO_SLOT` updated to use specific names (`subject_area`, `writing_tone`, `target_language`, etc.).
+- Files: `extractor.py`, `fix_slots.py`, `option_taxonomy.py`, `pipeline.py`
+
+---
+
 ### Phase 5: Option Refinement & Production Hardening (Mar 20–21)
 
 **`454edd6` — fix validation crash, orphaned options, and taxonomy overflow (Mar 21)**
@@ -156,3 +172,4 @@ Reverse-chronological log of attempts and strategies for constructing the databa
 | 3 | Mar 13 | Modular refactor (7 modules) + dedicated slot fixing + vLLM | Maintainability & inference speed |
 | 4 | Mar 19 | Two-stage pipeline (segment→extract) + validation + embeddings | Template extraction accuracy |
 | 5 | Mar 20–21 | LLM-built option taxonomy + production hardening | Option compatibility at scale |
+| 6 | Mar 30 | Specific descriptive slot naming + functional-role slots | Slot precision & option taxonomy coherence |
