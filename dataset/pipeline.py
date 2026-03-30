@@ -179,7 +179,7 @@ def run_extraction(
     Parameters
     ----------
     test
-        When True, load only 2 prompts per dataset for a quick smoke-test.
+        When True, load only 50 prompts per dataset for a quick smoke-test.
     batch_size
         Number of prompts to process in a single batched forward pass.
         vLLM processes all requests concurrently so large batches are efficient.
@@ -187,10 +187,10 @@ def run_extraction(
     store = TemplateStore()
 
     if test:
-        logger.info("TEST MODE: loading 2 prompts per dataset.")
+        logger.info("TEST MODE: loading 50 prompts per dataset.")
 
     logger.info(f"Streaming prompts for extraction (model={model}, batch_size={batch_size})…")
-    prompts = _load_dataset_prompts(datasets, max_per_dataset=2 if test else None)
+    prompts = _load_dataset_prompts(datasets, max_per_dataset=50 if test else None)
 
     if prompts:
         ext_tmpls, ext_opts = extract_templates_from_dataset(

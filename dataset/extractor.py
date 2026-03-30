@@ -34,8 +34,6 @@ logger = logging.getLogger(__name__)
 
 from dataset.fix_slots import (
     CANONICAL_PREFERRED_SLOTS,
-    _CANONICAL_PREFERRED_SLOTS,
-    _TASK_TYPE_TO_DEFAULT_SLOT,
     _normalize_slot_names,
     _detect_self_replicating_slots,
     _expand_list_options,
@@ -139,72 +137,72 @@ The option value must include all contextual framing that makes it a coherent \
 reference. For example, "the book 'what a beautiful day'" is ONE option value \
 (not just "what a beautiful day"). Similarly, a full paragraph provided as context \
 is ONE option value, not multiple fragments.
-- "slot": the canonical slot name this value fills.
+- "slot": the slot name this value fills (see SLOT NAMING below).
 - "compatible_task_types": ALL taxonomy labels where this value could plausibly appear.
 
 LONG CONTENT AS SINGLE OPTIONS:
 - When a prompt contains a paragraph, passage, code block, list of choices, or any \
 multi-sentence content that serves as input/context for the task, capture the ENTIRE \
 content span as a single option value. Do NOT fragment it.
+- Use a FUNCTIONAL ROLE slot name (see SLOT NAMING below).
 - Examples:
   ✓ Prompt: "Summarize the following: The quick brown fox jumped over the lazy dog. \
 It was a sunny day and the fox was feeling adventurous."
-    → template: "Summarize the following: {passage}"
-    → option: slot="passage", value="The quick brown fox jumped over the lazy dog. \
+    → template: "Summarize the following: {source_passage}"
+    → option: slot="source_passage", value="The quick brown fox jumped over the lazy dog. \
 It was a sunny day and the fox was feeling adventurous."
-  ✓ Prompt: "Write a summary of the book 'what a beautiful day'"
-    → template: "Write a summary of {topic}"
-    → option: slot="topic", value="the book 'what a beautiful day'"
   ✓ Prompt: "Classify this text: 'Machine learning is a subset of AI that...'"
-    → template: "Classify this text: {text}"
-    → option: slot="text", value="Machine learning is a subset of AI that..."
+    → template: "Classify this text: {source_passage}"
+    → option: slot="source_passage", value="Machine learning is a subset of AI that..."
+  ✓ Prompt: "Given the following problem: Find the shortest path in a graph..."
+    → template: "Given the following problem: {problem_statement}"
+    → option: slot="problem_statement", value="Find the shortest path in a graph..."
 
-SLOT NAMING — you MUST use a canonical name. Inventing new slot names is the last resort.
-- CANONICAL names (use one of these whenever it fits the semantics):
-  `topic`, `description`, `text`, `passage`, `question`, `context`, `source`, `code`,
-  `keyword`, `option`, `completion`, `language`, `programming_language`,
-  `text_type`, `person`, `number` (for any count/quantity), `tone`, `style`, `format`,
-  `role`, `category`, `title`, `subject`, `task`, `content`, `example`,
-  `unit` (any linguistic/structural unit: character, word, sentence, syllable, paragraph).
+SLOT NAMING — name each slot with the most SPECIFIC descriptive `snake_case` name \
+that captures what KIND of value goes there. Be precise — the name should predict \
+what values fit.
+- SPECIFIC IS BETTER: `interviewee` is better than `person`, `academic_subject` is \
+better than `topic`, `recipe_ingredient` is better than `content`, \
+`target_language` is better than `language`.
+- FUNCTIONAL ROLE SLOTS for multi-sentence/paragraph content. Use one of these:
+  `source_passage` — text to read/analyze/summarize
+  `problem_statement` — a task/puzzle/problem to solve
+  `code_snippet` — code to analyze/fix/extend
+  `example_context` — a worked example or test case
+  `factual_background` — encyclopedic or factual background info
+  `input_data` — structured input (tables, lists, JSON)
+- KEPT CANONICALS for these specific categories:
+  `text_type` — text-genre words (essay, poem, letter, report, article, story, summary, \
+speech, blog post, review, script, email, memo). ALWAYS extract these as {text_type}.
+  `unit` — linguistic/structural units (character, word, sentence, syllable, paragraph, \
+line, token). ALWAYS extract these as {unit} when they refer to a swappable unit.
+  `number` — any count, quantity, or numeric constraint (300, five, 3-5).
 - ALL slot names are SINGULAR. For list-valued slots, emit one option per item \
 (all sharing the same slot name), not one option with a comma-separated string. \
 Example: keywords "python" and "NLP" → two options both with slot="keyword", \
 NOT one option slot="keyword" value="python, NLP".
-- DEFAULT FALLBACKS: when no specific canonical name fits:
-  → free-form content, instructions, or multi-sentence text → `description`
-  → a subject matter, domain, or theme → `topic`
-  → a brief value that doesn't fit anything else → `content`
 - CORRECT vs WRONG examples:
-  ✓ slot="description" for "a detailed explanation of the project"
-  ✗ slot="project_description" — never qualify a canonical name with a prefix
-  ✓ slot="topic" for "climate change", "machine learning", "tax law"
-  ✗ slot="research_topic" or "essay_topic" — use plain `topic`
-  ✓ slot="tone" for "formal", "casual", "sarcastic"
+  ✓ slot="interviewee" for "the CEO", "a local farmer"
+  ✗ slot="person" or "topic" — too generic, can't predict what fits
+  ✓ slot="academic_subject" for "organic chemistry", "medieval history"
+  ✗ slot="topic" — too generic for a clear academic discipline
+  ✓ slot="writing_tone" for "formal", "casual", "sarcastic"
   ✗ slot="formal" with value="formal" — slot must describe the type, not the value
-  ✓ two options slot="keyword" value="python" and slot="keyword" value="NLP"
-  ✗ one option slot="keyword" value="python, NLP"
   ✓ slot="text_type" for "essay", "poem", "letter", "paragraph"
-  ✗ template "Write an essay about {topic}" with no text_type slot — \
+  ✗ template "Write an essay about {academic_subject}" with no text_type slot — \
 "essay" should be {text_type}
-  ✓ slot="unit" for "character", "word", "sentence", "syllable", "paragraph"
+  ✓ slot="unit" for "character", "word", "sentence", "syllable"
   ✗ template "The first character should be uppercase" with no unit slot — \
 "character" should be {unit}
-  ✓ slot="format" for "uppercase", "lowercase", "title case", "alternating case"
-  ✗ slot="first_char_case" or "casing_constraint" — use plain `format`
-  ✓ slot="keyword" for forbidden words/elements (things that must be excluded)
-  ✗ slot="forbidden_words" or "forbidden_element"
-  ✓ slot="number" for any length constraint ("300 words", "5 sentences")
-  ✗ slot="length_constraint" or "word_count"
-  ✓ slot="category" for type classifiers ("question_type", "answer_type")
-  ✗ slot="question_type" or "answer_type"
+  ✓ slot="source_passage" for a full paragraph serving as context
+  ✗ slot="text" or "passage" — use the functional role name
+  ✓ "Write a summary of the book 'what a beautiful day'" \
+    → template: "Write a summary of {literary_work}" \
+    → option: slot="literary_work", value="the book 'what a beautiful day'"
 - NEVER use a single letter (a, b, p, q, …) — use the full semantic name.
-- NEVER use numbered variants (option_1/option_2, n1/n2) — group into one slot \
-(e.g. `option`, `number_list`).
+- NEVER use numbered variants (option_1/option_2, n1/n2) — group into one slot.
 - NEVER name a slot the same as its value (e.g. slot="formal" value="formal" is wrong; \
-use `tone` or `style`).
-- NEVER qualify a canonical name with a prefix or suffix (no `task_description`, \
-`source_language`, `input_text`, `target_code`). Use the bare canonical name.
-- Use `{code}` for full code blocks, not just variable names.
+use `writing_tone` or `writing_style`).
 
 REUSABILITY IS MANDATORY — every template must be a pattern that works with MANY \
 different option values. Ask yourself: "can I plug in 10 different values for each \
@@ -213,9 +211,9 @@ slot and still get a coherent, useful prompt?" If not, do NOT extract it.
 WHEN NOT TO DECOMPOSE:
 - If the segment is a factual paragraph, encyclopedic text, problem statement, \
 worked example, or any self-contained block of content, the ENTIRE text is ONE \
-option value for a single slot (passage, context, description). Do NOT break it \
-into sub-parts. The template should be minimal (e.g. just "{passage}" or \
-"Given the following context: {context}") with the text as the option.
+option value for a single functional-role slot. Do NOT break it into sub-parts. \
+The template should be minimal (e.g. just "{source_passage}" or \
+"Given the following context: {factual_background}") with the text as the option.
 - Test-case inputs, specific answers, worked-example data, and other values that \
 are meaningful ONLY in the context of one specific problem MUST stay as literal \
 text — do NOT extract them as separate options.
@@ -223,13 +221,14 @@ text — do NOT extract them as separate options.
 as literal text, NOT extract each permutation as a separate option.
 - If a template has a specific sentence fragment that only makes sense for one \
 topic (e.g. "The x86 family is a bit different."), it is NOT reusable — make the \
-whole thing a {passage} or {context} instead.
+whole thing a {source_passage} or {factual_background} instead.
 
 TIGHTLY-COUPLED SLOTS:
 - When multiple values in a prompt are semantically linked (e.g. an author + their \
 book title + a quote from that book), they SHOULD be combined into fewer, larger \
-slots rather than many small ones. Prefer "{passage}" or "{context}" over separate \
-{author}, {title}, {quote} slots when the values are meaningless without each other.
+slots rather than many small ones. Prefer a functional-role slot ({source_passage}, \
+{factual_background}) over separate {author}, {title}, {quote} slots when the values \
+are meaningless without each other.
 - Rule: if changing one slot value requires changing another to stay coherent, \
 merge them into a single slot.
 
@@ -240,17 +239,17 @@ value to produce a valid prompt of the same type, it SHOULD be a slot.
 speech, blog post, review, script, email, memo) → ALWAYS make these {text_type}.
   ✓ "The essay should be a minimum of {number} words" → \
 "The {text_type} should be a minimum of {number} words"
-  ✓ "Write an essay about climate change" → "Write a {text_type} about {topic}"
+  ✓ "Write an essay about climate change" → "Write a {text_type} about {academic_subject}"
 - LINGUISTIC UNIT WORDS (character, word, sentence, syllable, paragraph, line, \
 letter, token) → ALWAYS make these {unit} when they refer to a structural unit \
 that could be swapped.
   ✓ "The first character should be in uppercase" → \
-"The first {unit} should be in {format}"
+"The first {unit} should be in {text_casing}"
   ✓ "alternate capitalization of characters" → \
-"alternate {format} of {unit}s"
+"alternate {text_casing} of {unit}s"
 - "How many people in the room are more than six feet tall?" → \
-"How many {topic} in {context} are more than {number} {description}?" \
-or a simpler split that still captures the variable parts.
+"How many {entity_type} in {location} are more than {number} {measurement_unit}?" \
+— use specific slot names that predict what values fit.
 
 Output valid JSON only — no markdown fences, no commentary.\
 """
@@ -428,68 +427,58 @@ def _repair_json(raw: str) -> dict:
 
 
 # Slot → most likely compatible taxonomy levels.
-# Used when the LLM outputs unrecognized labels and we need a fallback.
-_SLOT_TO_LEVEL: dict[str, list[str]] = {
-    # Content slots → typically fill task_type templates
-    "topic":       ["task_type"],
-    "subject":     ["task_type"],
-    "passage":     ["task_type"],
-    "context":     ["task_type"],
-    "text":        ["task_type"],
-    "question":    ["task_type"],
-    "code":        ["task_type"],
-    "person":      ["task_type"],
-    "title":       ["task_type"],
-    "quote":       ["task_type"],
-    "author":      ["task_type"],
-    "source":      ["task_type"],
-    "role":        ["task_type"],
-    "task":        ["task_type"],
-    "content":     ["task_type"],
-    "example":     ["task_type"],
-    "category":    ["task_type"],
-    "text_type":   ["task_type"],
-    "content_type":["task_type"],
-    # Format/structure slots → format_constraint
-    "format":      ["format_constraint"],
-    "number":      ["format_constraint", "task_type"],
-    "unit":        ["format_constraint"],
-    "keyword":     ["format_constraint"],
-    "option_label":["format_constraint"],
-    # Style slots → content_style_constraint
-    "style":       ["content_style_constraint"],
-    "tone":        ["content_style_constraint"],
-    "language":    ["content_style_constraint", "task_type"],
-    "programming_language": ["task_type"],
-    # Descriptive slots → can appear anywhere
-    "description": ["task_type", "format_constraint", "content_style_constraint"],
-    "completion":  ["task_type"],
+# ── Slot → level inference ────────────────────────────────────────────────
+#
+# With specific slot naming, we infer the level from the option taxonomy when
+# available (via embedding similarity), or fall back to broad heuristics.
+
+# Minimal keyword hints — used only when no taxonomy is available.
+_LEVEL_KEYWORDS: dict[str, list[str]] = {
+    "format_constraint": [
+        "number", "count", "length", "limit", "unit", "casing",
+        "format", "layout", "structure", "frequency",
+    ],
+    "content_style_constraint": [
+        "tone", "style", "voice", "register", "audience", "mood",
+        "writing_tone", "writing_style",
+    ],
+    "process_directive": [
+        "reasoning", "chain_of_thought", "step",
+    ],
 }
 
 
 def _infer_compatible_types_from_slot(slot: str, taxonomy: dict | None = None) -> list[str]:
     """Infer compatible_task_types from the slot name when the LLM output is invalid.
 
-    Returns leaf labels from the taxonomy. If taxonomy is provided, expands
-    level names (e.g. "task_type") into their leaf labels.
+    Uses keyword hints as a lightweight fallback. When a taxonomy is available,
+    returns all leaf labels to be maximally permissive — the option taxonomy's
+    compatible_slots mechanism handles precise matching at generation time.
     """
     slot_lower = slot.strip().lower()
-    level_names = _SLOT_TO_LEVEL.get(slot_lower, ["task_type"])
 
-    if taxonomy is None:
-        return list(level_names)
+    if taxonomy is not None:
+        all_leaves = _flatten_taxonomy_labels(taxonomy)
+        # Check keyword hints first for a targeted result
+        for level, keywords in _LEVEL_KEYWORDS.items():
+            if any(kw in slot_lower for kw in keywords):
+                if level in taxonomy and isinstance(taxonomy[level], dict):
+                    group_leaves = [l for l in all_leaves if _label_in_group(l, taxonomy[level])]
+                    if group_leaves:
+                        return group_leaves
+                return [level]
+        # Default: return all task_type leaves (most common level)
+        if "task_type" in taxonomy and isinstance(taxonomy["task_type"], dict):
+            group_leaves = [l for l in all_leaves if _label_in_group(l, taxonomy["task_type"])]
+            if group_leaves:
+                return group_leaves
+        return all_leaves
 
-    # Expand level names → leaf labels from taxonomy
-    all_leaves = _flatten_taxonomy_labels(taxonomy)
-    result: list[str] = []
-    for level in level_names:
-        if level in taxonomy and isinstance(taxonomy[level], dict):
-            # Collect leaves under this level group
-            group_leaves = [l for l in all_leaves if _label_in_group(l, taxonomy[level])]
-            result.extend(group_leaves)
-        else:
-            result.append(level)
-    return result or all_leaves  # if nothing matched, be permissive
+    # No taxonomy — use keyword hints
+    for level, keywords in _LEVEL_KEYWORDS.items():
+        if any(kw in slot_lower for kw in keywords):
+            return [level]
+    return ["task_type"]
 
 
 def _parse_llm_extraction(
@@ -891,15 +880,16 @@ def _extract_segmented_llm(
         batch_segs = flat_segments[batch_start: batch_start + batch_size]
         new_opts_this_seg: list[Option] = []
 
-        # Snapshot current taxonomy context for this batch
-        slot_vocab = opt_taxonomy.to_prompt_context()
+        # Per-segment taxonomy retrieval — each segment gets relevant types
         batch_msgs = [
             _build_messages(
                 seg.span_text,
                 taxonomy_labels,
                 source_map.get(seg.source_prompt),
                 segment_hint=f"{seg.taxonomy_label} ({seg.level})",
-                slot_vocabulary=slot_vocab,
+                slot_vocabulary=opt_taxonomy.to_prompt_context(
+                    query=seg.span_text,
+                ),
             )
             for seg in batch_segs
         ]
@@ -1011,87 +1001,6 @@ def _extract_llm_single_pass(
     return final_t, final_o
 
 
-# ── LLM batch slot reclassification ──────────────────────────────────────
-
-_RECLASSIFY_SYSTEM_PROMPT = """\
-You are a slot name normalizer for a prompt template extraction system.
-
-Map each slot name to the most semantically appropriate canonical equivalent.
-
-Canonical slots:
-topic, description, text, passage, question, context, source, code,
-keyword, option, completion, language, programming_language, text_type,
-person, number, tone, style, format, role, category, title, subject,
-task, content, example
-
-Rules:
-- Choose the canonical that best captures the SEMANTIC ROLE of the variable \
-in a prompt template (e.g. "research_topic" → "topic").
-- If a slot is a qualified canonical name, use the bare canonical.
-- Default: free-form content → "description"; subject/domain/theme → "topic".
-
-Output ONLY a JSON object {"slot_name": "canonical_name", ...} — no commentary.\
-"""
-
-_RECLASSIFY_VALID_TARGETS: frozenset[str] = CANONICAL_PREFERRED_SLOTS | frozenset({
-    "tone", "style", "format", "role", "category",
-    "title", "subject", "task", "content", "example",
-})
-
-
-def reclassify_exotic_slots(
-    exotic_slots: list[str],
-    *,
-    model: str = "meta-llama/Llama-3.1-8B-Instruct",
-    device: str | None = None,
-    batch_size: int = 40,
-) -> dict[str, str]:
-    """Map exotic slot names to canonical equivalents via LLM.
-
-    Intended as a post-processing step on accumulated unique slot names.
-    Returns a dict mapping exotic_slot → canonical_slot; slots already in
-    CANONICAL_PREFERRED_SLOTS are skipped.
-
-    Typical usage:
-        all_opts = json.loads(Path("dataset/output/options.json").read_text())
-        exotic = [s for s in {o["slot"] for o in all_opts}
-                  if s not in CANONICAL_PREFERRED_SLOTS]
-        remap = reclassify_exotic_slots(exotic, model=..., device="cuda")
-        raw_t, raw_o = normalize_existing(raw_templates, raw_opts)
-        # then apply remap via a second _normalize_slot_names call
-    """
-    if not exotic_slots:
-        return {}
-
-    remap: dict[str, str] = {}
-    n_batches = (len(exotic_slots) + batch_size - 1) // batch_size
-    for i in range(0, len(exotic_slots), batch_size):
-        batch = exotic_slots[i: i + batch_size]
-        messages = [
-            {"role": "system", "content": _RECLASSIFY_SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(batch, ensure_ascii=False)},
-        ]
-        try:
-            raw = _local_generate(
-                model, messages,
-                temperature=0.0, device=device,
-                enable_thinking=False,
-            )
-            mapping = _repair_json(raw)
-        except Exception as e:
-            logger.warning(
-                f"  Reclassify batch {i // batch_size + 1}/{n_batches} failed: {e}"
-            )
-            continue
-
-        for slot, target in mapping.items():
-            if slot not in batch or not isinstance(target, str):
-                continue
-            target = target.strip().lower()
-            if target in _RECLASSIFY_VALID_TARGETS and target != slot.lower():
-                remap[slot] = target
-
-    logger.info(
-        f"  Slot reclassification: {len(remap)}/{len(exotic_slots)} slots remapped"
-    )
-    return remap
+# reclassify_exotic_slots removed — with specific slot naming, we no longer
+# collapse exotic names back to generic canonicals. The option taxonomy
+# handles slot grouping instead.

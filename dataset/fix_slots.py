@@ -36,20 +36,11 @@ FEW_SHOT_PATH = DATASET_DIR / "few_shot_examples.json"
 # ── Canonical slot names ───────────────────────────────────────────────────
 
 CANONICAL_PREFERRED_SLOTS: frozenset[str] = frozenset({
-    "topic", "description", "text", "passage", "question", "context",
-    "source", "code", "keyword", "option", "completion", "language",
-    "programming_language", "text_type", "person", "number",
-    # extended canonical names accepted during normalization
-    "tone", "style", "format", "role", "category", "title",
-    "subject", "task", "content", "example",
-    # linguistic / structural unit (character, word, sentence, syllable, …)
-    "unit",
-    # NE-derived slot names (from extractor._NE_TO_SLOT)
-    "date", "location", "event", "law", "cardinal", "ordinal",
-    "quantity", "percent", "money", "time",
-    "country_city_state", "nationality_religion_political_group",
-    "building_airport_highway_bridge", "object_vehicle_food",
-    "book_song_art", "company_agency_institution",
+    # Kept canonicals — these are genuinely universal slot types
+    "text_type", "unit", "number",
+    # Functional-role slots for long/paragraph content
+    "source_passage", "problem_statement", "code_snippet",
+    "example_context", "factual_background", "input_data",
 })
 _CANONICAL_PREFERRED_SLOTS = CANONICAL_PREFERRED_SLOTS   # private alias
 
@@ -100,94 +91,12 @@ _SINGLE_LETTER_MAP: dict[str, str] = {
 _SINGLE_LETTER_MAP.update({k.upper(): v for k, v in _SINGLE_LETTER_MAP.items()})
 
 
-# ── Compound slot canonicalization ────────────────────────────────────────
+# ── Compound slot cleanup ─────────────────────────────────────────────────
 #
-# Most exotic slot names are qualified canonical names, e.g.
-# `task_description` → `description`, `input_text` → `text`.
-# We check the last underscore-separated component against a safe canonical
-# suffix list and strip the qualifier.
-#
-# `text` is excluded from suffix matching because `text_type` is itself
-# canonical and would be wrongly collapsed.
+# With specific slot naming, we no longer collapse compound names to canonicals.
+# We only strip meaningless collection suffixes (e.g. "animal_list" → "animal").
 
-_SUFFIX_CANONICAL: frozenset[str] = frozenset({
-    "topic", "description", "passage", "question", "context", "source",
-    "code", "keyword", "language", "person", "number", "option",
-    "completion", "tone", "style", "format", "role", "category",
-    "title", "subject", "task", "content", "example", "unit",
-    # multi-word forms matched as two-component suffixes
-    "text_type", "programming_language",
-})
-
-# Manual overrides for cases where suffix matching would give the wrong result.
-_COMPOUND_SLOT_REMAP: dict[str, str] = {
-    # language qualifiers → programming_language when code context is clear
-    "code_language":         "programming_language",
-    "coding_language":       "programming_language",
-    "script_language":       "programming_language",
-    "program_language":      "programming_language",
-    # bare `text` qualifiers — excluded from suffix set to protect `text_type`
-    "input_text":            "text",
-    "output_text":           "text",
-    "original_text":         "text",
-    "body_text":             "text",
-    "sample_text":           "text",
-    "given_text":            "text",
-    "provided_text":         "text",
-    "source_text":           "text",
-    "target_text":           "text",
-    # person qualifiers
-    "historical_person":     "person",
-    "famous_person":         "person",
-    "public_figure":         "person",
-    # over-qualified topic slots
-    "research_topic":        "topic",
-    "essay_topic":           "topic",
-    "discussion_topic":      "topic",
-    "main_topic":            "topic",
-    "programming_task":      "topic",
-    # casing / formatting slots → format
-    "first_char_case":       "format",
-    "char_case":             "format",
-    "casing_constraint":     "format",
-    "letter_case":           "format",
-    # alternation / sequencing rules → description
-    "alternation_rule":      "description",
-    "alternation_pattern":   "description",
-    "sequence_rule":         "description",
-    # length as a constraint → number
-    "length_constraint":     "number",
-    "length_requirement":    "number",
-    "word_count":            "number",
-    "min_length":            "number",
-    "max_length":            "number",
-    # type/category classifiers
-    "question_type":         "category",
-    "answer_type":           "category",
-    "document_type":         "category",
-    "response_type":         "category",
-    "output_type":           "category",
-    # source/material type → description (avoids slot collision with question_type)
-    "source_type":           "description",
-    # forbidden elements → keyword
-    "forbidden_words":       "keyword",
-    "forbidden_word":        "keyword",
-    "forbidden_element":     "keyword",
-    "restricted_word":       "keyword",
-    # column/field names → description
-    "column_names":          "description",
-    "column_name":           "description",
-    "field_names":           "description",
-    # linguistic unit qualifiers → unit
-    "text_unit":             "unit",
-    "linguistic_unit":       "unit",
-}
-
-
-# Trailing collection/plurality suffixes that should be stripped to reveal
-# the canonical base slot (e.g. "animal_list" → "animal", "topic_names" → "topic").
-# Only stripped when the base is itself a recognised canonical slot or when the
-# stripped form matches via the suffix/remap rules below.
+# Trailing collection/plurality suffixes that add no semantic meaning.
 _COLLECTION_SUFFIXES: tuple[str, ...] = (
     "_list", "_array", "_set", "_options", "_values", "_types",
     "_names", "_items", "_elements", "_entries",
@@ -195,46 +104,17 @@ _COLLECTION_SUFFIXES: tuple[str, ...] = (
 
 
 def _canonicalize_compound_slot(slot: str) -> str | None:
-    """Map a compound slot name to a canonical form, or return None if unknown.
+    """Strip collection suffixes from compound slot names.
 
-    Priority:
-    1. Manual override (_COMPOUND_SLOT_REMAP).
-    2. Strip collection suffixes (_list, _array, _set, …) then re-check.
-    3. Two-component suffix (e.g. ``text_type``, ``programming_language``).
-    4. Single-component suffix (e.g. ``description``, ``topic``).
+    Returns the cleaned base name, or None if no change needed.
+    No longer collapses specific names to generic canonicals.
     """
     lower = slot.lower()
-    if lower in _COMPOUND_SLOT_REMAP:
-        return _COMPOUND_SLOT_REMAP[lower]
 
     # Strip collection suffixes: "animal_list" → "animal"
     for suffix in _COLLECTION_SUFFIXES:
         if lower.endswith(suffix) and len(lower) > len(suffix):
-            base = lower[:-len(suffix)]
-            # If the base is a canonical slot, use it directly
-            if base in _CANONICAL_PREFERRED_SLOTS:
-                return base
-            # If the base matches a remap, follow it
-            if base in _COMPOUND_SLOT_REMAP:
-                return _COMPOUND_SLOT_REMAP[base]
-            # Otherwise strip the suffix and continue with suffix matching
-            lower = base
-            break
-
-    parts = lower.split("_")
-    if len(parts) < 2:
-        # After suffix stripping, may be a single word — check canonical
-        if lower in _CANONICAL_PREFERRED_SLOTS:
-            return lower
-        return None
-
-    two_suffix = "_".join(parts[-2:])
-    if two_suffix in _SUFFIX_CANONICAL:
-        return two_suffix
-
-    one_suffix = parts[-1]
-    if one_suffix in _SUFFIX_CANONICAL:
-        return one_suffix
+            return lower[:-len(suffix)]
 
     return None
 
@@ -242,39 +122,41 @@ def _canonicalize_compound_slot(slot: str) -> str | None:
 # ── Task-type → default slot fallback ─────────────────────────────────────
 
 _TASK_TYPE_TO_DEFAULT_SLOT: dict[str, str] = {
-    "question_answering":          "topic",
-    "fact_verification":           "topic",
-    "information_extraction":      "topic",
-    "summarization":               "topic",
-    "mathematical_reasoning":      "topic",
-    "logical_deductive_reasoning": "topic",
-    "commonsense_reasoning":       "topic",
-    "argumentation":               "topic",
-    "prediction":                  "topic",
-    "creative_writing":            "topic",
-    "text_completion":             "topic",
-    "dialogue_generation":         "topic",
-    "translation":                 "topic",
-    "rewriting_paraphrasing":      "topic",
-    "communication_writing":       "topic",
-    "classification":              "category",
-    "ranking_comparison":          "topic",
-    "data_analysis":               "topic",
-    "code_generation":             "topic",
-    "conversion":                  "topic",
-    "planning":                    "topic",
-    "brainstorming":               "topic",
-    "role_playing":                "topic",
-    "explanation":                 "topic",
+    # Only used as last-resort fallback for self-replicating slot detection.
+    # Maps task types to reasonable specific slot names.
+    "question_answering":          "subject_area",
+    "fact_verification":           "subject_area",
+    "information_extraction":      "subject_area",
+    "summarization":               "subject_area",
+    "mathematical_reasoning":      "subject_area",
+    "logical_deductive_reasoning": "subject_area",
+    "commonsense_reasoning":       "subject_area",
+    "argumentation":               "subject_area",
+    "prediction":                  "subject_area",
+    "creative_writing":            "subject_area",
+    "text_completion":             "subject_area",
+    "dialogue_generation":         "subject_area",
+    "translation":                 "subject_area",
+    "rewriting_paraphrasing":      "subject_area",
+    "communication_writing":       "subject_area",
+    "classification":              "classification_label",
+    "ranking_comparison":          "subject_area",
+    "data_analysis":               "subject_area",
+    "code_generation":             "subject_area",
+    "conversion":                  "subject_area",
+    "planning":                    "subject_area",
+    "brainstorming":               "subject_area",
+    "role_playing":                "subject_area",
+    "explanation":                 "subject_area",
     "length_constraint":           "number",
     "structure_constraint":        "number",
-    "keyword_inclusion":           "keyword",
-    "keyword_frequency":           "keyword",
-    "forbidden_words":             "keyword",
-    "response_language":           "language",
-    "casing_constraint":           "topic",
-    "tone_constraint":             "tone",
-    "audience_constraint":         "topic",
+    "keyword_inclusion":           "target_word",
+    "keyword_frequency":           "target_word",
+    "forbidden_words":             "forbidden_word",
+    "response_language":           "target_language",
+    "casing_constraint":           "text_casing",
+    "tone_constraint":             "writing_tone",
+    "audience_constraint":         "target_audience",
 }
 
 
@@ -282,19 +164,19 @@ _TASK_TYPE_TO_DEFAULT_SLOT: dict[str, str] = {
 
 _SELF_REP_VALUE_TO_SLOT: dict[str, str] = {
     # Tone / style / register descriptors
-    "formal":        "tone",
-    "informal":      "tone",
-    "professional":  "tone",
-    "casual":        "tone",
-    "humorous":      "tone",
-    "friendly":      "tone",
-    "serious":       "tone",
-    "sarcastic":     "tone",
-    "neutral":       "tone",
-    "polite":        "tone",
-    "academic":      "tone",
-    "analytical":    "tone",
-    "creative":      "style",
+    "formal":        "writing_tone",
+    "informal":      "writing_tone",
+    "professional":  "writing_tone",
+    "casual":        "writing_tone",
+    "humorous":      "writing_tone",
+    "friendly":      "writing_tone",
+    "serious":       "writing_tone",
+    "sarcastic":     "writing_tone",
+    "neutral":       "writing_tone",
+    "polite":        "writing_tone",
+    "academic":      "writing_tone",
+    "analytical":    "writing_tone",
+    "creative":      "writing_style",
     # Format / structure descriptors
     "bullet":        "text_type",
     "bullets":       "text_type",
@@ -302,31 +184,31 @@ _SELF_REP_VALUE_TO_SLOT: dict[str, str] = {
     "json":          "text_type",
     "table":         "text_type",
     "markdown":      "text_type",
-    # Plurals / near-synonyms of canonical slot names
-    "people":        "person",
-    "persons":       "person",
-    "character":     "person",
-    "characters":    "person",
-    "name":          "person",
-    "names":         "person",
-    "topics":        "topic",
-    "thing":         "topic",
-    "things":        "topic",
-    "item":          "topic",
-    "items":         "topic",
-    "word":          "keyword",
-    "words":         "keyword",
-    "tag":           "keyword",
-    "tags":          "keyword",
-    "hashtag":       "keyword",
-    "hashtags":      "keyword",
-    "section":       "description",
-    "sections":      "description",
-    "sentence":      "description",
-    "sentences":     "description",
-    "paragraph":     "description",
-    "paragraphs":    "description",
-    "postscript":    "description",
+    # Plurals / near-synonyms — remap to specific names
+    "people":        "entity_type",
+    "persons":       "entity_type",
+    "character":     "character_name",
+    "characters":    "character_name",
+    "name":          "entity_name",
+    "names":         "entity_name",
+    "topics":        "subject_area",
+    "thing":         "entity_type",
+    "things":        "entity_type",
+    "item":          "entity_type",
+    "items":         "entity_type",
+    "word":          "target_word",
+    "words":         "target_word",
+    "tag":           "keyword_tag",
+    "tags":          "keyword_tag",
+    "hashtag":       "keyword_tag",
+    "hashtags":      "keyword_tag",
+    "section":       "text_section",
+    "sections":      "text_section",
+    "sentence":      "text_section",
+    "sentences":     "text_section",
+    "paragraph":     "text_section",
+    "paragraphs":    "text_section",
+    "postscript":    "text_section",
 }
 
 
